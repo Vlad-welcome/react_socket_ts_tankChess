@@ -1,0 +1,58 @@
+.chess-board {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  width: min(90vmin, 1080px);
+  aspect-ratio: 1 / 1;
+  border: 4px solid #333;
+}
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: min(8vmin, 56px);
+  line-height: 1;
+  user-select: none;
+  isolation: isolate;  
+}
+.cell.light { background: #f0d9b5; }
+.cell.dark  { background: #b58863; }
+
+/* подсветка выбранной клетки */
+.cell.selected {
+  outline: 3px solid #ff4646;
+  outline-offset: -3px;
+  z-index: 1;
+}
+
+/* подсветка союзной техники */
+.cell.ally {
+  outline: 3px solid #46ff5f;
+  outline-offset: -3px;
+  z-index: 1;
+}
+
+.overlay-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(8vmin, 72px);
+}
+
+.cell.highlight::after {
+  z-index: 0;
+  content: "";
+  position: absolute;            
+  inset: 25%;                 /* круг чуть меньше клетки */
+  border-radius: 50%;
+  background: rgba(189, 23, 23, 0.45);
+  pointer-events: none;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1);   opacity: .7; }
+  50%      { transform: scale(1.1); opacity: 1;  }
+}
