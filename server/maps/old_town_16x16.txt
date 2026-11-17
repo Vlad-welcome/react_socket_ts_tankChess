@@ -1,0 +1,18 @@
+[
+  ["    ", "    ", "bHM ", "    ", "    ", "wall", "wall", "    ", "bLTK", "    ", "bHT ", "    ", "    ", "bHM ", "    ", "wall"],
+  ["    ", "    ", "    ", "    ", "wall", "wall", "wall", "    ", "wall", "    ", "    ", "wall", "wall", "    ", "    ", "wall"],
+  ["    ", "bLT ", "wall", "bMT ", "    ", "    ", "    ", "    ", "wall", "wall", "    ", "wall", "bLT ", "    ", "    ", "    "],
+  ["    ", "wall", "wall", "    ", "wall", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "wall", "wall", "    "],
+  ["    ", "wall", "    ", "    ", "wall", "    ", "wall", "    ", "wall", "    ", "wall", "wall", "    ", "wall", "    ", "    "],
+  ["    ", "wall", "    ", "wall", "wall", "    ", "wall", "    ", "wall", "    ", "wall", "wall", "    ", "    ", "    ", "    "],
+  ["    ", "wall", "    ", "wall", "wall", "    ", "wall", "    ", "    ", "    ", "    ", "wall", "    ", "wall", "wall", "    "],
+  ["    ", "    ", "    ", "    ", "wall", "    ", "wall", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "    "],
+  ["    ", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "wall", "    ", "wall", "    ", "    ", "    ", "    "],
+  ["    ", "wall", "wall", "    ", "wall", "    ", "    ", "    ", "    ", "wall", "    ", "wall", "wall", "    ", "wall", "    "],
+  ["    ", "    ", "    ", "    ", "wall", "wall", "    ", "wall", "    ", "wall", "    ", "wall", "wall", "    ", "wall", "    "],
+  ["    ", "    ", "wall", "    ", "wall", "wall", "    ", "wall", "    ", "wall", "    ", "wall", "    ", "    ", "wall", "    "],
+  ["    ", "wall", "wall", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "    ", "wall", "    ", "wall", "wall", "    "],
+  ["    ", "    ", "    ", "wLT ", "wall", "    ", "wall", "wall", "    ", "    ", "    ", "    ", "wMT ", "wall", "wLT ", "    "],
+  ["wall", "    ", "    ", "wall", "wall", "    ", "    ", "wall", "    ", "wall", "wall", "wall", "    ", "    ", "    ", "    "],
+  ["wall", "    ", "wHM ", "    ", "    ", "wHT ", "    ", "wLTK", "    ", "wall", "wall", "    ", "    ", "wHM ", "    ", "    "]
+]

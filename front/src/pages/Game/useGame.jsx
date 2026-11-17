@@ -247,12 +247,15 @@ export function useGame(username) {
 
     if (newCol < 0 || newCol >= SIZE) return;
 
-    if (tank.type === "wLTK" && newRow < 0) {
+    if ((tank.type === "wLTK" || tank.type === "wMTK" || tank.type === "wHTK") && newRow < 0) {
       console.log("white win");
       window.alert(`Победа`);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");
       endGame();
-    } else if (tank.type === "bLTK" && newRow === SIZE) {
+    } else if (
+      (tank.type === "bLTK" || tank.type === "bMTK" || tank.type === "bHTK") &&
+      newRow === SIZE
+    ) {
       console.log("black win");
       window.alert(`Победа`);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");
@@ -289,12 +292,15 @@ export function useGame(username) {
 
     if (newCol < 0 || newCol >= SIZE) return;
 
-    if (tank.type === "wLTK" && newRow < 0) {
+    if ((tank.type === "wLTK" || tank.type === "wMTK" || tank.type === "wHTK") && newRow < 0) {
       console.log("white win");
       window.alert(`Победа`);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");
       endGame();
-    } else if (tank.type === "bLTK" && newRow === SIZE) {
+    } else if (
+      (tank.type === "bLTK" || tank.type === "bMTK" || tank.type === "bHTK") &&
+      newRow === SIZE
+    ) {
       console.log("black win");
       window.alert(`Победа`);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");

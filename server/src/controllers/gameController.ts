@@ -29,12 +29,16 @@ const DIRS = {
 const objects: Record<string, Cell> = {
   wall: { type: "wall" },
   wLTK: { type: "wLTK", player: 1, rotate: 0 },
+  wMTK: { type: "wMTK", player: 1, rotate: 0 },
+  wHTK: { type: "wHTK", player: 1, rotate: 0 },
   wLT: { type: "wLT", player: 1, rotate: 0 },
   wMT: { type: "wMT", player: 1, rotate: 0 },
   wHT: { type: "wHT", player: 1, rotate: 0 },
   wTD: { type: "wTD", player: 1, rotate: 0 },
   wHM: { type: "wHM", player: 1, rotate: 0 },
   bLTK: { type: "bLTK", player: 2, rotate: 180 },
+  bMTK: { type: "bMTK", player: 2, rotate: 180 },
+  bHTK: { type: "bHTK", player: 2, rotate: 180 },
   bLT: { type: "bLT", player: 2, rotate: 180 },
   bMT: { type: "bMT", player: 2, rotate: 180 },
   bHT: { type: "bHT", player: 2, rotate: 180 },
@@ -58,6 +62,20 @@ function initTypeTanksMap(SIZE: number) {
       shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
       damage: 1,
       moves: 5,
+    },
+    wMTK: {
+      img: "/sprites/wMTK.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 4,
+    },
+    wHTK: {
+      img: "/sprites/wHTK.png",
+      armor: { front: 3, side: 2, back: 1 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 3,
+      moves: 3,
     },
     wLT: {
       img: "/sprites/wLT.png",
@@ -102,6 +120,20 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 5,
     },
+    bMTK: {
+      img: "/sprites/bMTK.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 4,
+    },
+    bHTK: {
+      img: "/sprites/bHTK.png",
+      armor: { front: 3, side: 2, back: 1 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 3,
+      moves: 3,
+    },
     bLT: {
       img: "/sprites/bLT.png",
       armor: { front: 1, side: 0, back: 0 },
@@ -145,9 +177,9 @@ function initBoard() {
   //const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
   if (isSea()) {
-    pathMap = path.join(__dirname, "maps", "map.txt");
+    pathMap = path.join(__dirname, "maps", "_map.txt");
   } else {
-    pathMap = path.join(__dirname, "..", "..", "maps", "map.txt");
+    pathMap = path.join(__dirname, "..", "..", "maps", "_map.txt");
   }
 
   const board = JSON.parse(fs.readFileSync(pathMap, "utf-8"));
@@ -323,7 +355,14 @@ export const gameController = (io: Server, socket: Socket): void => {
 
   function checkWin(board: Board, shoted: ICoord) {
     const shotedTank = board[shoted.row][shoted.col] as ITank;
-    if (shotedTank.type === "wLTK" || shotedTank.type === "bLTK") {
+    if (
+      shotedTank.type === "wLTK" ||
+      shotedTank.type === "bLTK" ||
+      shotedTank.type === "wMTK" ||
+      shotedTank.type === "bMTK" ||
+      shotedTank.type === "wHTK" ||
+      shotedTank.type === "bHTK"
+    ) {
       return true;
     }
     return false;
