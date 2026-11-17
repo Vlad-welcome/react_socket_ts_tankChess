@@ -7,6 +7,7 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 
 import path from "node:path";
 import { isSea } from "node:sea";
+import { fileURLToPath } from "node:url";
 
 const app: Application = express();
 
@@ -18,7 +19,6 @@ app.use(cookieParser());
 app.use(errorHandler);
 
 //const __dirname = path.dirname(fileURLToPath(import.meta.url));
-//const __dirname = __dirname;
 
 let staticDir: string;
 if (isSea()) {
@@ -26,7 +26,6 @@ if (isSea()) {
 } else {
   staticDir = path.join(__dirname, "..", "..", "front", "dist");
 }
-
 app.use(express.static(staticDir));
 
 // app.use((req, res, next) => {

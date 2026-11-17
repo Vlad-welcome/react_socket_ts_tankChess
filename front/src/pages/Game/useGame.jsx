@@ -34,6 +34,7 @@ export function useGame(username) {
         setBoard(response.board);
         setPrevBoard(response.board);
         setTypeTanks(response.typeTanks);
+        setSIZE(response.SIZE);
       }
     });
 
@@ -47,6 +48,7 @@ export function useGame(username) {
       setBoard(response.board);
       setPrevBoard(response.board);
       setTypeTanks(response.typeTanks);
+      setSIZE(response.SIZE);
     });
 
     socket.on(Events.NEXT_TURNED, (response) => {
@@ -176,7 +178,7 @@ export function useGame(username) {
   };
 
   //GAME
-  const SIZE = 12;
+  const [SIZE, setSIZE] = useState(-1);
   const STEP = 45;
 
   const [player, setPlayer] = useState(-1);
@@ -443,7 +445,6 @@ export function useGame(username) {
         );
       }
     }
-
     return set;
   }, [selected, board]);
 
@@ -482,7 +483,10 @@ export function useGame(username) {
               alt=""
               className="overlay-img"
               draggable={false}
-              style={{ transform: `rotate(${tank?.rotate || 0}deg)` }}
+              style={{
+                transform: `rotate(${tank?.rotate || 0}deg)`,
+                "--img-size": SIZE === 16 ? "56px" : "72px",
+              }}
             />
           )}
         </div>,
@@ -504,5 +508,6 @@ export function useGame(username) {
     move,
     armor,
     damage,
+    SIZE,
   };
 }

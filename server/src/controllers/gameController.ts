@@ -8,102 +8,14 @@ import type {
   ITank,
   ITankType,
   IWall,
+  Cell,
 } from "../interfaces/interfaces.js";
 
-const SIZE = 12;
-const _typeTanks: TypeTanksMap = {
-  //block
-  wall: {
-    img: "/sprites/wall.png",
-  },
-  //white
-  wLTK: {
-    img: "/sprites/wLTK.png",
-    armor: { front: 1, side: 0, back: 0 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 1,
-    moves: 5,
-  },
-  wLT: {
-    img: "/sprites/wLT.png",
-    armor: { front: 1, side: 0, back: 0 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 1,
-    moves: 5,
-  },
-  wMT: {
-    img: "/sprites/wMT.png",
-    armor: { front: 2, side: 1, back: 0 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 2,
-    moves: 4,
-  },
-  wHT: {
-    img: "/sprites/wHT.png",
-    armor: { front: 3, side: 2, back: 1 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 3,
-    moves: 3,
-  },
-  wTD: {
-    img: "/sprites/wTD.png",
-    armor: { front: 2, side: 1, back: 0 },
-    shot: { sides: 1, min: 2, max: SIZE, type: "tank" },
-    damage: 4,
-    moves: 4,
-  },
-  wHM: {
-    img: "/sprites/wHM.png",
-    armor: { front: 1, side: 0, back: 0 },
-    shot: { sides: 1, min: 3, max: 5, type: "arta" },
-    damage: 5,
-    moves: 3,
-  },
-  //Black
-  bLTK: {
-    img: "/sprites/bLTK.png",
-    armor: { front: 1, side: 0, back: 0 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 1,
-    moves: 5,
-  },
-  bLT: {
-    img: "/sprites/bLT.png",
-    armor: { front: 1, side: 0, back: 0 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 1,
-    moves: 5,
-  },
-  bMT: {
-    img: "/sprites/bMT.png",
-    armor: { front: 2, side: 1, back: 0 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 2,
-    moves: 4,
-  },
-  bHT: {
-    img: "/sprites/bHT.png",
-    armor: { front: 3, side: 2, back: 1 },
-    shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
-    damage: 3,
-    moves: 3,
-  },
-  bTD: {
-    img: "/sprites/bTD.png",
-    armor: { front: 2, side: 1, back: 0 },
-    shot: { sides: 1, min: 2, max: SIZE, type: "tank" },
-    damage: 4,
-    moves: 4,
-  },
-  bHM: {
-    img: "/sprites/bHM.png",
-    armor: { front: 1, side: 0, back: 0 },
-    shot: { sides: 1, min: 3, max: 5, type: "arta" },
-    damage: 5,
-    moves: 3,
-  },
-};
-let _board: Board;
+import fs from "fs";
+import path from "node:path";
+import { isSea } from "node:sea";
+import { fileURLToPath } from "node:url";
+
 const DIRS = {
   "-1,0": 0,
   "-1,1": 45,
@@ -114,59 +26,145 @@ const DIRS = {
   "0,-1": 270,
   "-1,-1": 315,
 };
+const objects: Record<string, Cell> = {
+  wall: { type: "wall" },
+  wLTK: { type: "wLTK", player: 1, rotate: 0 },
+  wLT: { type: "wLT", player: 1, rotate: 0 },
+  wMT: { type: "wMT", player: 1, rotate: 0 },
+  wHT: { type: "wHT", player: 1, rotate: 0 },
+  wTD: { type: "wTD", player: 1, rotate: 0 },
+  wHM: { type: "wHM", player: 1, rotate: 0 },
+  bLTK: { type: "bLTK", player: 2, rotate: 180 },
+  bLT: { type: "bLT", player: 2, rotate: 180 },
+  bMT: { type: "bMT", player: 2, rotate: 180 },
+  bHT: { type: "bHT", player: 2, rotate: 180 },
+  bTD: { type: "bTD", player: 2, rotate: 180 },
+  bHM: { type: "bHM", player: 2, rotate: 180 },
+};
 
+let _board: Board;
+let _typeTanks: TypeTanksMap;
+let SIZE: number;
+function initTypeTanksMap(SIZE: number) {
+  let typeTanks: TypeTanksMap = {
+    //block
+    wall: {
+      img: "/sprites/wall.png",
+    },
+    //white
+    wLTK: {
+      img: "/sprites/wLTK.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 1,
+      moves: 5,
+    },
+    wLT: {
+      img: "/sprites/wLT.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 1,
+      moves: 5,
+    },
+    wMT: {
+      img: "/sprites/wMT.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 4,
+    },
+    wHT: {
+      img: "/sprites/wHT.png",
+      armor: { front: 3, side: 2, back: 1 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 3,
+      moves: 3,
+    },
+    wTD: {
+      img: "/sprites/wTD.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 1, min: 2, max: SIZE, type: "tank" },
+      damage: 4,
+      moves: 4,
+    },
+    wHM: {
+      img: "/sprites/wHM.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 1, min: 3, max: 5, type: "arta" },
+      damage: 5,
+      moves: 3,
+    },
+    //Black
+    bLTK: {
+      img: "/sprites/bLTK.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 1,
+      moves: 5,
+    },
+    bLT: {
+      img: "/sprites/bLT.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 1,
+      moves: 5,
+    },
+    bMT: {
+      img: "/sprites/bMT.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 4,
+    },
+    bHT: {
+      img: "/sprites/bHT.png",
+      armor: { front: 3, side: 2, back: 1 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 3,
+      moves: 3,
+    },
+    bTD: {
+      img: "/sprites/bTD.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 1, min: 2, max: SIZE, type: "tank" },
+      damage: 4,
+      moves: 4,
+    },
+    bHM: {
+      img: "/sprites/bHM.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 1, min: 3, max: 5, type: "arta" },
+      damage: 5,
+      moves: 3,
+    },
+  };
+  return typeTanks;
+}
 function initBoard() {
-  _board = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-  //white
-  _board[11][3] = { type: "wHM", rotate: 0, player: 1 };
-  _board[11][5] = { type: "wLTK", rotate: 0, player: 1 };
-  _board[11][7] = { type: "wHT", rotate: 0, player: 1 };
-  //
-  _board[9][3] = { type: "wLT", rotate: 0, player: 1 };
-  _board[9][5] = { type: "wMT", rotate: 0, player: 1 };
-  _board[9][7] = { type: "wLT", rotate: 0, player: 1 };
-  //Black
-  _board[0][4] = { type: "bHT", rotate: 180, player: 2 };
-  _board[0][6] = { type: "bLTK", rotate: 180, player: 2 };
-  _board[0][8] = { type: "bHM", rotate: 180, player: 2 };
-  //
-  _board[2][4] = { type: "bLT", rotate: 180, player: 2 };
-  _board[2][6] = { type: "bMT", rotate: 180, player: 2 };
-  _board[2][8] = { type: "bLT", rotate: 180, player: 2 };
-  //Block
-  _board[0][2] = { type: "wall" };
-  _board[1][2] = { type: "wall" };
+  let pathMap: string;
+  //const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-  _board[0][10] = { type: "wall" };
+  if (isSea()) {
+    pathMap = path.join(__dirname, "maps", "map.txt");
+  } else {
+    pathMap = path.join(__dirname, "..", "..", "maps", "map.txt");
+  }
 
-  _board[3][5] = { type: "wall" };
-  _board[3][6] = { type: "wall" };
-  _board[4][6] = { type: "wall" };
-  _board[4][7] = { type: "wall" };
-  _board[4][8] = { type: "wall" };
+  const board = JSON.parse(fs.readFileSync(pathMap, "utf-8"));
+  let boardLength = board.length;
+  _board = Array.from({ length: boardLength }, () => Array(boardLength).fill(null));
 
-  _board[4][10] = { type: "wall" };
+  for (let i = 0; i < boardLength; i++) {
+    for (let j = 0; j < boardLength; j++) {
+      const cell: string = board[i][j].trim();
 
-  _board[4][2] = { type: "wall" };
-  _board[4][3] = { type: "wall" };
-  _board[5][2] = { type: "wall" };
-  //
-  _board[11][1] = { type: "wall" };
+      if (cell) {
+        _board[i][j] = objects[cell];
+      }
+    }
+  }
 
-  _board[11][9] = { type: "wall" };
-  _board[10][9] = { type: "wall" };
-
-  _board[7][9] = { type: "wall" };
-  _board[6][9] = { type: "wall" };
-  _board[7][8] = { type: "wall" };
-
-  _board[7][1] = { type: "wall" };
-
-  _board[7][3] = { type: "wall" };
-  _board[7][4] = { type: "wall" };
-  _board[7][5] = { type: "wall" };
-  _board[8][5] = { type: "wall" };
-  _board[8][6] = { type: "wall" };
+  return { typeTanks: initTypeTanksMap(board.length), size: board.length };
 }
 
 export const gameController = (io: Server, socket: Socket): void => {
@@ -186,12 +184,16 @@ export const gameController = (io: Server, socket: Socket): void => {
     const user = await userService.getByName(name);
 
     if (user) {
-      initBoard();
+      let init = initBoard();
+      _typeTanks = init.typeTanks;
+      SIZE = init.size;
+
       // Пуш приглашённому игроку
       const payload = {
         playerSocketId: socket.id,
         board: _board,
         typeTanks: _typeTanks,
+        SIZE: SIZE,
       };
       io.to(user.socketId).emit(Events.INVITED, payload);
 
@@ -209,6 +211,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       playerSocketId: socket.id,
       board: _board,
       typeTanks: _typeTanks,
+      SIZE: SIZE,
     };
     io.to(playerSocketId).emit(Events.GAME_STARTED, payload);
   });

@@ -71,7 +71,9 @@ export const Game = () => {
             Параметры: <b>move: {game.move}</b> armor: front {game.armor.front}, side{" "}
             {game.armor.side}, back {game.armor.back} damage: {game.damage}
           </div>
-          <div className="chess-board">{game.cells}</div>
+          <div className="chess-board" style={{ "--grid-size": game.SIZE }}>
+            {game.cells}
+          </div>
         </div>
       </div>
     );

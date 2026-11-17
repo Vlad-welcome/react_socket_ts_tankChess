@@ -5,11 +5,11 @@ import { userController } from "../controllers/userController.js";
 
 export function initSocket(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
-    // cors: {
-    //   origin: process.env.SERVER_API,
-    //   methods: ["GET", "POST"],
-    //   credentials: true,
-    // },
+    cors: {
+      origin: process.env.SERVER_API,
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
   });
 
   io.on("connection", (socket) => {
