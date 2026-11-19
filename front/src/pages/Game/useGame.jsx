@@ -3,6 +3,7 @@ import { Events } from "../../socketEvents.js";
 import { useState, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { useMemo } from "react";
+import { ConfirmFunc } from "../../components/index.js";
 
 export function useGame(username) {
   const [connected, setConnected] = useState(false);
@@ -20,9 +21,9 @@ export function useGame(username) {
       console.log("disconnect");
     });
 
-    socket.on(Events.INVITED, (response) => {
+    socket.on(Events.INVITED, async (response) => {
       console.log("invited");
-      const ok = window.confirm(`Вас приглашает в игру. Принять?`);
+      const ok = await ConfirmFunc(`Вас приглашает в игру. Принять?`);
       if (ok) {
         document.title = "Ожидайте";
         setPlayer(2);
@@ -59,14 +60,14 @@ export function useGame(username) {
       document.title = "Ходите";
     });
 
-    socket.on(Events.EXITED, (response) => {
+    socket.on(Events.EXITED, async (response) => {
       if (response.text) {
-        window.alert(response.text);
+        await ConfirmFunc(response.text, "Ок", false);
       }
       endGame();
     });
 
-    socket.on(Events.SHOTED, (response) => {
+    socket.on(Events.SHOTED, async (response) => {
       console.log("shoted");
 
       setTurn(!response.win);
@@ -76,7 +77,7 @@ export function useGame(username) {
 
       if (response.win) {
         console.log("defeated");
-        window.alert(`Поражение`);
+        await ConfirmFunc("Поражение", "Ок", false);
         endGame();
       }
     });
@@ -95,13 +96,13 @@ export function useGame(username) {
   const join = (onResult) => {
     console.log("join", username);
     socket.connect();
-    socket.emit(Events.JOIN, username, (response) => {
+    socket.emit(Events.JOIN, username, async (response) => {
       if (response.success) {
         onResult(true);
       } else {
         socket.disconnect();
         onResult(false);
-        window.alert(`Пользователь с таким именем уже существует`);
+        await ConfirmFunc("Пользователь с таким именем уже существует", "Ок", false);
       }
     });
   };
@@ -122,9 +123,9 @@ export function useGame(username) {
     if (!name) {
       return;
     }
-    socket.emit(Events.INVITE, name, (response) => {
+    socket.emit(Events.INVITE, name, async (response) => {
       if (!response.success) {
-        window.alert(`Пользователь не в сети`);
+        await ConfirmFunc("Пользователь не в сети", "Ок", false);
       }
     });
   };
@@ -154,14 +155,16 @@ export function useGame(username) {
     console.log("endGame");
     setStart(false);
     setIsRoom(false);
-    setTurn(false);
+    setEnemySocketId(-1);
+
+    setSelected(false);
   };
 
   const shot = (shoted) => {
     console.log("shot");
     setTurn(false);
     document.title = "Ожидайте";
-    socket.emit(Events.SHOT, enemySocketId, board, selected, shoted, (response) => {
+    socket.emit(Events.SHOT, enemySocketId, board, selected, shoted, async (response) => {
       if (response.success) {
         setBoard(response.board);
         setMove("-");
@@ -170,7 +173,7 @@ export function useGame(username) {
 
         if (response.win) {
           console.log("Win");
-          window.alert(`Победа`);
+          await ConfirmFunc("Победа", "Ок", false);
           endGame();
         }
       }
@@ -235,7 +238,7 @@ export function useGame(username) {
   };
 
   // передний ход
-  const moveSelected = useCallback(() => {
+  const moveSelected = useCallback(async () => {
     if (!selected || move <= 0) return;
 
     const { row, col } = selected;
@@ -249,7 +252,7 @@ export function useGame(username) {
 
     if ((tank.type === "wLTK" || tank.type === "wMTK" || tank.type === "wHTK") && newRow < 0) {
       console.log("white win");
-      window.alert(`Победа`);
+      await ConfirmFunc("Победа", "Ок", false);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");
       endGame();
     } else if (
@@ -257,7 +260,7 @@ export function useGame(username) {
       newRow === SIZE
     ) {
       console.log("black win");
-      window.alert(`Победа`);
+      await ConfirmFunc("Победа", "Ок", false);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");
       endGame();
     }
@@ -276,7 +279,7 @@ export function useGame(username) {
   }, [selected, board, move]);
 
   // задний ход
-  const moveBackSelected = useCallback(() => {
+  const moveBackSelected = useCallback(async () => {
     if (!selected || move <= 0) return;
 
     const { row, col } = selected;
@@ -294,7 +297,7 @@ export function useGame(username) {
 
     if ((tank.type === "wLTK" || tank.type === "wMTK" || tank.type === "wHTK") && newRow < 0) {
       console.log("white win");
-      window.alert(`Победа`);
+      await ConfirmFunc("Победа", "Ок", false);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");
       endGame();
     } else if (
@@ -302,7 +305,7 @@ export function useGame(username) {
       newRow === SIZE
     ) {
       console.log("black win");
-      window.alert(`Победа`);
+      await ConfirmFunc("Победа", "Ок", false);
       socket.emit(Events.EXIT, enemySocketId, "Поражение");
       endGame();
     }
