@@ -187,7 +187,7 @@ function initTypeTanksMap(SIZE: number) {
 }
 function initBoard() {
   let pathMap: string;
-  //const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
   if (isSea()) {
     pathMap = path.join(__dirname, "maps", "_map.txt");
@@ -237,13 +237,14 @@ export const gameController = (io: Server, socket: Socket): void => {
   socket.on(Events.INVITE, async (name: string, callback: (res: { success: boolean }) => void) => {
     console.log("Server Events.INVITE");
     const user = await userService.getByName(name);
+    const curUser = await userService.getBySocket(socket.id);
 
-    if (user) {
+    if (user && curUser) {
       initBoard();
 
       // Пуш приглашённому игроку
       const payload = {
-        playerSocketId: socket.id,
+        enemyPlayer: curUser.username,
         board: _board,
         typeTanks: _typeTanks,
         size: SIZE,
@@ -257,26 +258,32 @@ export const gameController = (io: Server, socket: Socket): void => {
     callback({ success: false });
   });
 
-  socket.on(Events.GAME_START, async (playerSocketId: string) => {
+  socket.on(Events.GAME_START, async (enemyPlayer: string) => {
     console.log("Server Events.GAME_START");
+
+    const user = await userService.getByName(enemyPlayer);
+
     const payload = {
-      playerSocketId: socket.id,
+      enemyPlayer: enemyPlayer,
       board: _board,
       typeTanks: _typeTanks,
       size: SIZE,
     };
-    io.to(playerSocketId).emit(Events.GAME_STARTED, payload);
+    io.to(user!.socketId).emit(Events.GAME_STARTED, payload);
   });
 
   socket.on(
     Events.NEXT_TURN,
-    async (enemySocketId: string, callback: (res: { success: boolean }) => void) => {
+    async (enemyPlayer: string, callback: (res: { success: boolean }) => void) => {
       console.log("Server Events.NEXT_TURN");
+
+      const user = await userService.getByName(enemyPlayer);
+
       if (checkEndMove()) {
         _isWhiteTurn = !_isWhiteTurn;
         _prevBoard = structuredClone(_board);
         const payload = { board: _board };
-        io.to(enemySocketId).emit(Events.NEXT_TURNED, payload);
+        io.to(user!.socketId).emit(Events.NEXT_TURNED, payload);
         callback({ success: true });
       } else {
         callback({ success: false });
@@ -284,15 +291,16 @@ export const gameController = (io: Server, socket: Socket): void => {
     },
   );
 
-  socket.on(Events.EXIT, async (enemySocketId: string, text: string) => {
+  socket.on(Events.EXIT, async (enemyPlayer: string, text: string) => {
     console.log("Server Events.EXIT");
-    io.to(enemySocketId).emit(Events.EXITED, { text: text });
+    const user = await userService.getByName(enemyPlayer);
+    io.to(user!.socketId).emit(Events.EXITED, { text: text });
   });
 
   socket.on(
     Events.SHOT,
     async (
-      enemySocketId: string,
+      enemyPlayer: string,
       shoted: Coord,
       callback: (res: { success: boolean; board: Board; win: boolean }) => void,
     ) => {
@@ -318,8 +326,11 @@ export const gameController = (io: Server, socket: Socket): void => {
 
       _isWhiteTurn = !_isWhiteTurn;
       _prevBoard = structuredClone(_board);
+
+      const user = await userService.getByName(enemyPlayer);
+
       const payload = { board: _board, win };
-      io.to(enemySocketId).emit(Events.SHOTED, payload);
+      io.to(user!.socketId).emit(Events.SHOTED, payload);
       callback({ success: true, board: _board, win });
     },
   );
@@ -329,7 +340,7 @@ export const gameController = (io: Server, socket: Socket): void => {
     async (
       select: Coord,
       player: number,
-      enemySocketId: string,
+      enemyPlayer: string,
       callback: (res: {
         success: boolean;
         board: Board;
@@ -363,8 +374,10 @@ export const gameController = (io: Server, socket: Socket): void => {
         _move = (_typeTanks[tank.type] as ITankType).moves;
       }
 
+      const user = await userService.getByName(enemyPlayer);
+
       const payload = { board: _board };
-      io.to(enemySocketId).emit(Events.ENEMY_MOVED, payload);
+      io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,
@@ -378,7 +391,7 @@ export const gameController = (io: Server, socket: Socket): void => {
   socket.on(
     Events.MOVE_FORWARD,
     async (
-      enemySocketId: string,
+      enemyPlayer: string,
       callback: (res: {
         success: boolean;
         board: Board;
@@ -458,8 +471,10 @@ export const gameController = (io: Server, socket: Socket): void => {
         _move -= 1;
       }
 
+      const user = await userService.getByName(enemyPlayer);
+
       const payload = { board: _board };
-      io.to(enemySocketId).emit(Events.ENEMY_MOVED, payload);
+      io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,
@@ -475,7 +490,7 @@ export const gameController = (io: Server, socket: Socket): void => {
   socket.on(
     Events.MOVE_BACK,
     async (
-      enemySocketId: string,
+      enemyPlayer: string,
       callback: (res: {
         success: boolean;
         board: Board;
@@ -569,8 +584,10 @@ export const gameController = (io: Server, socket: Socket): void => {
         _move = 0;
       }
 
+      const user = await userService.getByName(enemyPlayer);
+
       const payload = { board: _board };
-      io.to(enemySocketId).emit(Events.ENEMY_MOVED, payload);
+      io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,
@@ -586,7 +603,7 @@ export const gameController = (io: Server, socket: Socket): void => {
   socket.on(
     Events.TANK_ROTATE,
     async (
-      enemySocketId: string,
+      enemyPlayer: string,
       angle: number,
       callback: (res: {
         success: boolean;
@@ -629,8 +646,10 @@ export const gameController = (io: Server, socket: Socket): void => {
       _highlighted = setHighlighted();
       _move -= 1;
 
+      const user = await userService.getByName(enemyPlayer);
+
       const payload = { board: _board };
-      io.to(enemySocketId).emit(Events.ENEMY_MOVED, payload);
+      io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,

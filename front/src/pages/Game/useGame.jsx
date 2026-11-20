@@ -1,70 +1,68 @@
-import { socket } from "../../api/socket";
 import { Events } from "../../socketEvents.js";
 import { useState, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { useMemo } from "react";
 import { ConfirmFunc } from "../../components/index.js";
+import { io } from "socket.io-client";
 
 export function useGame(username) {
   const [connected, setConnected] = useState(false);
-  const [enemySocketId, setEnemySocketId] = useState(-1);
+  const [enemyPlayer, setEnemyPlayer] = useState(-1);
   const [start, setStart] = useState(false);
   const [isRoom, setIsRoom] = useState(false);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    socket.on("connect", () => {
+    if (!socket) return;
+
+    const onConnect = () => {
       setConnected(true);
       console.log("connect");
-    });
-    socket.on("disconnect", () => {
+    };
+    const onDisconnect = () => {
       setConnected(false);
       console.log("disconnect");
-    });
-
-    socket.on(Events.INVITED, async (response) => {
+    };
+    const onInvited = async (response) => {
       console.log("invited");
       const ok = await ConfirmFunc(`Вас приглашает в игру. Принять?`);
       if (ok) {
         document.title = "Ожидайте";
         setPlayer(2);
-        setEnemySocketId(response.playerSocketId);
+        setEnemyPlayer(response.enemyPlayer);
 
-        socket.emit(Events.GAME_START, response.playerSocketId);
+        socket.emit(Events.GAME_START, response.enemyPlayer);
         setIsRoom(true);
         setStart(true);
         setSIZE(response.size);
         setTypeTanks(response.typeTanks);
         setBoard(response.board);
       }
-    });
-
-    socket.on(Events.GAME_STARTED, (response) => {
+    };
+    const onGameStarted = (response) => {
       document.title = "Ходите";
 
       console.log("started");
       setTurn(true);
       setStart(true);
-      setEnemySocketId(response.playerSocketId);
+      setEnemyPlayer(response.enemyPlayer);
       setSIZE(response.size);
       setTypeTanks(response.typeTanks);
       setBoard(response.board);
-    });
-
-    socket.on(Events.NEXT_TURNED, (response) => {
+    };
+    const onNextTurned = (response) => {
       console.log("turned");
       setTurn(true);
       setBoard(response.board);
       document.title = "Ходите";
-    });
-
-    socket.on(Events.EXITED, async (response) => {
+    };
+    const onExited = async (response) => {
       if (response.text) {
         await ConfirmFunc(response.text, "Ок", false);
       }
       endGame();
-    });
-
-    socket.on(Events.SHOTED, async (response) => {
+    };
+    const onShoted = async (response) => {
       console.log("shoted");
 
       setTurn(!response.win);
@@ -76,39 +74,61 @@ export function useGame(username) {
         await ConfirmFunc("Поражение", "Ок", false);
         endGame();
       }
-    });
-
-    socket.on(Events.ENEMY_MOVED, (response) => {
+    };
+    const onEnemyMoved = (response) => {
       console.log("ENEMY_MOVED");
       if (response.board?.length > 0) {
         setBoard(response.board);
       }
-    });
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on(Events.INVITED, onInvited);
+    socket.on(Events.GAME_STARTED, onGameStarted);
+    socket.on(Events.NEXT_TURNED, onNextTurned);
+    socket.on(Events.EXITED, onExited);
+    socket.on(Events.SHOTED, onShoted);
+    socket.on(Events.ENEMY_MOVED, onEnemyMoved);
 
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off(Events.INVITED);
-      socket.off(Events.GAME_STARTED);
-      socket.off(Events.NEXT_TURNED);
-      socket.off(Events.EXITED);
-      socket.off(Events.SHOTED);
-      socket.off(Events.ENEMY_MOVED);
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off(Events.INVITED, onInvited);
+      socket.off(Events.GAME_STARTED, onGameStarted);
+      socket.off(Events.NEXT_TURNED, onNextTurned);
+      socket.off(Events.EXITED, onExited);
+      socket.off(Events.SHOTED, onShoted);
+      socket.off(Events.ENEMY_MOVED, onEnemyMoved);
     };
-  }, []);
+  }, [socket]);
 
   const join = (onResult) => {
+    socket?.disconnect();
     console.log("join", username);
-    socket.connect();
-    socket.emit(Events.JOIN, username, async (response) => {
-      if (response.success) {
-        onResult(true);
-      } else {
-        socket.disconnect();
-        onResult(false);
-        await ConfirmFunc("Пользователь с таким именем уже существует", "Ок", false);
-      }
+
+    const s = io(import.meta.env.VITE_FRONT_API, {
+      autoConnect: false,
+      withCredentials: true,
+      auth: { username: username },
+      reconnection: true,
+      reconnectionAttempts: Infinity,
     });
+
+    setSocket(s);
+
+    s.on("connect", () => {
+      s.emit(Events.JOIN, username, async (response) => {
+        if (response.success) {
+          onResult(true);
+        } else {
+          s.disconnect();
+          onResult(false);
+          await ConfirmFunc("Пользователь с таким именем уже существует", "Ок", false);
+        }
+      });
+    });
+    s.connect();
   };
 
   const room = () => {
@@ -137,13 +157,13 @@ export function useGame(username) {
   const exit = () => {
     endGame();
 
-    socket.emit(Events.EXIT, enemySocketId);
+    socket.emit(Events.EXIT, enemyPlayer);
   };
 
   const nextTurn = () => {
     console.log("nextTurn");
 
-    socket.emit(Events.NEXT_TURN, enemySocketId, (response) => {
+    socket.emit(Events.NEXT_TURN, enemyPlayer, (response) => {
       if (!response.success) {
         setTurn(true);
         document.title = "Ходите";
@@ -165,14 +185,14 @@ export function useGame(username) {
     console.log("endGame");
     setStart(false);
     setIsRoom(false);
-    setEnemySocketId(-1);
+    setEnemyPlayer(-1);
 
     setSelected(false);
   };
 
   const shot = (shoted) => {
     console.log("shot");
-    socket.emit(Events.SHOT, enemySocketId, shoted, async (response) => {
+    socket.emit(Events.SHOT, enemyPlayer, shoted, async (response) => {
       if (response.success) {
         setTurn(false);
         document.title = "Ожидайте";
@@ -215,7 +235,7 @@ export function useGame(username) {
 
       console.log("rotateSelected");
 
-      socket.emit(Events.TANK_ROTATE, enemySocketId, delta, (response) => {
+      socket.emit(Events.TANK_ROTATE, enemyPlayer, delta, (response) => {
         if (response.success) {
           setBoard(response.board);
           setSelected(response.selected);
@@ -233,7 +253,7 @@ export function useGame(username) {
 
     console.log("moveSelected");
 
-    socket.emit(Events.MOVE_FORWARD, enemySocketId, async (response) => {
+    socket.emit(Events.MOVE_FORWARD, enemyPlayer, async (response) => {
       if (response.success) {
         setBoard(response.board);
         setSelected(response.selected);
@@ -242,7 +262,7 @@ export function useGame(username) {
 
         if (response.win) {
           console.log("Win");
-          socket.emit(Events.EXIT, enemySocketId, "Поражение");
+          socket.emit(Events.EXIT, enemyPlayer, "Поражение");
           await ConfirmFunc("Победа", "Ок", false);
           endGame();
         }
@@ -256,7 +276,7 @@ export function useGame(username) {
 
     console.log("moveBackSelected");
 
-    socket.emit(Events.MOVE_BACK, enemySocketId, async (response) => {
+    socket.emit(Events.MOVE_BACK, enemyPlayer, async (response) => {
       if (response.success) {
         setBoard(response.board);
         setSelected(response.selected);
@@ -265,7 +285,7 @@ export function useGame(username) {
 
         if (response.win) {
           console.log("Win");
-          socket.emit(Events.EXIT, enemySocketId, "Поражение");
+          socket.emit(Events.EXIT, enemyPlayer, "Поражение");
           await ConfirmFunc("Победа", "Ок", false);
           endGame();
         }
@@ -304,7 +324,7 @@ export function useGame(username) {
   const handleCellClick = (row, col) => {
     if (turn) {
       console.log("LEFT_CLICK");
-      socket.emit(Events.LEFT_CLICK, { row, col }, player, enemySocketId, (response) => {
+      socket.emit(Events.LEFT_CLICK, { row, col }, player, enemyPlayer, (response) => {
         if (response.success) {
           if (response.board?.length > 0) {
             setBoard(response.board);

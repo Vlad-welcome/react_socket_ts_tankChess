@@ -8,6 +8,9 @@ export const userController = (io: Server, socket: Socket): void => {
     async (username: unknown, callback: (res: { success: boolean }) => void) => {
       console.log("Server Events.JOIN");
 
+      const users = userService.getAll();
+      console.log(users);
+
       if (typeof username !== "string") {
         callback({ success: false });
         return;
@@ -22,7 +25,7 @@ export const userController = (io: Server, socket: Socket): void => {
       const user = await userService.getByName(name);
       if (user) {
         if (username.split(" ")[1] === "-") {
-          await userService.delete(user.username);
+          await userService.deleteByName(user.username);
           callback({ success: false });
           return;
         }
@@ -35,11 +38,22 @@ export const userController = (io: Server, socket: Socket): void => {
     },
   );
 
+  io.on("connection", (socket) => {
+    console.log("Server io connection");
+    const { username } = socket.handshake.auth;
+    userService.add(username, socket.id);
+
+    socket.on("disconnect", () => {
+      console.log("Server io disconnect");
+      userService.deleteBySocket(socket.id);
+    });
+  });
+
   socket.on("disconnect", async () => {
     console.log("Server disconnect");
     const user = await userService.getBySocket(socket.id);
     if (user) {
-      await userService.delete(user.username);
+      await userService.deleteByName(user.username);
     }
   });
 };

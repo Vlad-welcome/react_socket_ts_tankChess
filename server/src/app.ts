@@ -18,7 +18,7 @@ app.use(cookieParser());
 
 app.use(errorHandler);
 
-//const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let staticDir: string;
 if (isSea()) {
