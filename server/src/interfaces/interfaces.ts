@@ -44,3 +44,9 @@ export interface ICoord {
   row: number;
   col: number;
 }
+export type Coord = ICoord | null;
+
+export interface ISelected extends ICoord {
+  rotate: number;
+}
+export type Selected = ISelected | null;

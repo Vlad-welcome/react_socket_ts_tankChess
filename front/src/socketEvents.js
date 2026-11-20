@@ -5,6 +5,7 @@ export const Events = {
   NEXT_TURNED: "game:next_turned",
   EXITED: "game:exited",
   SHOTED: "tank:shoted",
+  ENEMY_MOVED: "enemy:moved",
 
   // client → server
   JOIN: "user:join",
@@ -14,4 +15,8 @@ export const Events = {
   NEXT_TURN: "game:next_turn",
   EXIT: "game:exit",
   SHOT: "tank:shot",
+  LEFT_CLICK: "tank:left_click",
+  MOVE_FORWARD: "tank:move_forward",
+  MOVE_BACK: "tank:move_back",
+  TANK_ROTATE: "tank:rotate",
 };

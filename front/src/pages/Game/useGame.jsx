@@ -30,12 +30,11 @@ export function useGame(username) {
         setEnemySocketId(response.playerSocketId);
 
         socket.emit(Events.GAME_START, response.playerSocketId);
-        setStart(true);
         setIsRoom(true);
-        setBoard(response.board);
-        setPrevBoard(response.board);
+        setStart(true);
+        setSIZE(response.size);
         setTypeTanks(response.typeTanks);
-        setSIZE(response.SIZE);
+        setBoard(response.board);
       }
     });
 
@@ -44,19 +43,17 @@ export function useGame(username) {
 
       console.log("started");
       setTurn(true);
+      setStart(true);
       setEnemySocketId(response.playerSocketId);
-      setStart(response.start);
-      setBoard(response.board);
-      setPrevBoard(response.board);
+      setSIZE(response.size);
       setTypeTanks(response.typeTanks);
-      setSIZE(response.SIZE);
+      setBoard(response.board);
     });
 
     socket.on(Events.NEXT_TURNED, (response) => {
       console.log("turned");
       setTurn(true);
       setBoard(response.board);
-      setPrevBoard(response.board);
       document.title = "Ходите";
     });
 
@@ -72,13 +69,19 @@ export function useGame(username) {
 
       setTurn(!response.win);
       setBoard(response.board);
-      setPrevBoard(response.board);
       document.title = "Ходите";
 
       if (response.win) {
         console.log("defeated");
         await ConfirmFunc("Поражение", "Ок", false);
         endGame();
+      }
+    });
+
+    socket.on(Events.ENEMY_MOVED, (response) => {
+      console.log("ENEMY_MOVED");
+      if (response.board?.length > 0) {
+        setBoard(response.board);
       }
     });
 
@@ -90,6 +93,7 @@ export function useGame(username) {
       socket.off(Events.NEXT_TURNED);
       socket.off(Events.EXITED);
       socket.off(Events.SHOTED);
+      socket.off(Events.ENEMY_MOVED);
     };
   }, []);
 
@@ -138,13 +142,19 @@ export function useGame(username) {
 
   const nextTurn = () => {
     console.log("nextTurn");
-    document.title = "Ожидайте";
-    setTurn(false);
-    socket.emit(Events.NEXT_TURN, enemySocketId, board, (response) => {
+
+    socket.emit(Events.NEXT_TURN, enemySocketId, (response) => {
       if (!response.success) {
-        setBoard(prevBoard);
         setTurn(true);
         document.title = "Ходите";
+      } else {
+        document.title = "Ожидайте";
+        setTurn(false);
+        setSelected(null);
+        setHighlighted(null);
+        setMove("-");
+        setArmor("-");
+        setDamage("-");
       }
     });
   };
@@ -162,11 +172,14 @@ export function useGame(username) {
 
   const shot = (shoted) => {
     console.log("shot");
-    setTurn(false);
-    document.title = "Ожидайте";
-    socket.emit(Events.SHOT, enemySocketId, board, selected, shoted, async (response) => {
+    socket.emit(Events.SHOT, enemySocketId, shoted, async (response) => {
       if (response.success) {
+        setTurn(false);
+        document.title = "Ожидайте";
+
         setBoard(response.board);
+        setSelected(null);
+        setHighlighted(null);
         setMove("-");
         setArmor("-");
         setDamage("-");
@@ -181,184 +194,105 @@ export function useGame(username) {
   };
 
   //GAME
-  const [SIZE, setSIZE] = useState(-1);
-  const STEP = 45;
-
   const [player, setPlayer] = useState(-1);
   const [turn, setTurn] = useState(false);
 
   const [selected, setSelected] = useState(null);
-  const [prevSelected, setPrevSelected] = useState(null);
-
   const [board, setBoard] = useState(null);
-  const [prevBoard, setPrevBoard] = useState(null);
+  const [highlighted, setHighlighted] = useState(() => new Set());
+
+  const [SIZE, setSIZE] = useState(-1);
   const [typeTanks, setTypeTanks] = useState(null);
 
   const [move, setMove] = useState("-");
   const [armor, setArmor] = useState("-");
   const [damage, setDamage] = useState("-");
 
-  // поворот на ±STEP градусов
+  //Поворот на 45
   const rotateSelected = useCallback(
     async (delta) => {
       if (!selected || move <= 0) return;
 
-      setMove((m) => m - 1);
+      console.log("rotateSelected");
 
-      setBoard((prev) => {
-        const { row, col } = selected;
-        const t = prev[row][col];
-        if (!t) return prev;
-
-        const next = prev.map((r) => r.slice());
-        next[row][col] = {
-          ...t,
-          rotate: (((t.rotate + delta) % 360) + 360) % 360,
-        };
-        return next;
+      socket.emit(Events.TANK_ROTATE, enemySocketId, delta, (response) => {
+        if (response.success) {
+          setBoard(response.board);
+          setSelected(response.selected);
+          setHighlighted(new Set(response.highlighted));
+          setMove(response.move);
+        }
       });
-
-      setSelected((prev) => ({
-        ...prev,
-        rotate: (((prev.rotate + delta) % 360) + 360) % 360,
-      }));
     },
-    [selected, move],
+    [selected, board, move],
   );
-
-  const DIRS = {
-    0: [-1, 0],
-    45: [-1, 1],
-    90: [0, 1],
-    135: [1, 1],
-    180: [1, 0],
-    225: [1, -1],
-    270: [0, -1],
-    315: [-1, -1],
-  };
 
   // передний ход
   const moveSelected = useCallback(async () => {
     if (!selected || move <= 0) return;
 
-    const { row, col } = selected;
-    const tank = board[row][col];
-    if (!tank) return;
+    console.log("moveSelected");
 
-    let newRow = row + DIRS[tank.rotate][0];
-    let newCol = col + DIRS[tank.rotate][1];
+    socket.emit(Events.MOVE_FORWARD, enemySocketId, async (response) => {
+      if (response.success) {
+        setBoard(response.board);
+        setSelected(response.selected);
+        setHighlighted(new Set(response.highlighted));
+        setMove(response.move);
 
-    if (newCol < 0 || newCol >= SIZE) return;
-
-    if ((tank.type === "wLTK" || tank.type === "wMTK" || tank.type === "wHTK") && newRow < 0) {
-      console.log("white win");
-      await ConfirmFunc("Победа", "Ок", false);
-      socket.emit(Events.EXIT, enemySocketId, "Поражение");
-      endGame();
-    } else if (
-      (tank.type === "bLTK" || tank.type === "bMTK" || tank.type === "bHTK") &&
-      newRow === SIZE
-    ) {
-      console.log("black win");
-      await ConfirmFunc("Победа", "Ок", false);
-      socket.emit(Events.EXIT, enemySocketId, "Поражение");
-      endGame();
-    }
-
-    if (newRow < 0 || newRow >= SIZE) return;
-    if (board[newRow][newCol]) return;
-
-    setBoard((prev) => {
-      const next = prev.map((r) => r.slice());
-      next[row][col] = null;
-      next[newRow][newCol] = tank;
-      return next;
+        if (response.win) {
+          console.log("Win");
+          socket.emit(Events.EXIT, enemySocketId, "Поражение");
+          await ConfirmFunc("Победа", "Ок", false);
+          endGame();
+        }
+      }
     });
-    setSelected({ row: newRow, col: newCol, rotate: tank.rotate });
-    setMove((m) => m - 1);
   }, [selected, board, move]);
 
   // задний ход
   const moveBackSelected = useCallback(async () => {
     if (!selected || move <= 0) return;
 
-    const { row, col } = selected;
-    const tank = board[row][col];
-    if (!tank) return;
+    console.log("moveBackSelected");
 
-    if (move !== typeTanks[tank.type].moves) return;
+    socket.emit(Events.MOVE_BACK, enemySocketId, async (response) => {
+      if (response.success) {
+        setBoard(response.board);
+        setSelected(response.selected);
+        setHighlighted(new Set(response.highlighted));
+        setMove(response.move);
 
-    const newRotate = (((tank.rotate + 180) % 360) + 360) % 360;
-
-    let newRow = row + DIRS[newRotate][0];
-    let newCol = col + DIRS[newRotate][1];
-
-    if (newCol < 0 || newCol >= SIZE) return;
-
-    if ((tank.type === "wLTK" || tank.type === "wMTK" || tank.type === "wHTK") && newRow < 0) {
-      console.log("white win");
-      await ConfirmFunc("Победа", "Ок", false);
-      socket.emit(Events.EXIT, enemySocketId, "Поражение");
-      endGame();
-    } else if (
-      (tank.type === "bLTK" || tank.type === "bMTK" || tank.type === "bHTK") &&
-      newRow === SIZE
-    ) {
-      console.log("black win");
-      await ConfirmFunc("Победа", "Ок", false);
-      socket.emit(Events.EXIT, enemySocketId, "Поражение");
-      endGame();
-    }
-
-    if (newRow < 0 || newRow >= SIZE) return;
-    if (board[newRow][newCol]) return;
-
-    setBoard((prev) => {
-      const next = prev.map((r) => r.slice());
-      next[row][col] = null;
-      next[newRow][newCol] = tank;
-      return next;
+        if (response.win) {
+          console.log("Win");
+          socket.emit(Events.EXIT, enemySocketId, "Поражение");
+          await ConfirmFunc("Победа", "Ок", false);
+          endGame();
+        }
+      }
     });
-    setSelected({ row: newRow, col: newCol, rotate: tank.rotate });
-    setMove((m) => 0);
   }, [selected, board, move]);
-
-  function checkEndMove() {
-    if (selected === null || prevSelected === null) return false;
-    return (
-      selected.row !== prevSelected.row ||
-      selected.col !== prevSelected.col ||
-      selected.rotate !== prevSelected.rotate
-    );
-  }
 
   // A / D / W / S
   useEffect(() => {
     if (!selected) return;
 
     const onKeyDown = (e) => {
-      if (e.key === "a" || e.key === "A" || e.key === "ArrowLeft") {
+      if (e.code === "KeyA" || e.code === "ArrowLeft") {
         e.preventDefault();
-        rotateSelected(-STEP);
-      } else if (e.key === "d" || e.key === "D" || e.key === "ArrowRight") {
+        rotateSelected(-1);
+      } else if (e.code === "KeyD" || e.code === "ArrowRight") {
         e.preventDefault();
-        rotateSelected(+STEP);
-      } else if (e.key === "w" || e.key === "W" || e.key === "ArrowUp") {
+        rotateSelected(+1);
+      } else if (e.code === "KeyW" || e.code === "ArrowUp") {
         e.preventDefault();
         moveSelected();
-      } else if (e.key === "s" || e.key === "S" || e.key === "ArrowDown") {
+      } else if (e.code === "KeyS" || e.code === "ArrowDown") {
         e.preventDefault();
         moveBackSelected();
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if (checkEndMove()) {
-          setSelected(null);
-          setPrevSelected(null);
-          setMove("-");
-          setArmor("-");
-          setDamage("-");
-          nextTurn();
-        }
+        nextTurn();
       }
     };
 
@@ -368,94 +302,38 @@ export function useGame(username) {
 
   // клик по танку — выбрать; клик по пустой клетке — снять выбор
   const handleCellClick = (row, col) => {
-    const t = board[row][col];
-    if (t && turn && t.player === player) {
-      setSelected({ row, col, rotate: t.rotate });
-      setPrevSelected({ row, col, rotate: t.rotate });
-      setBoard(prevBoard);
-      setMove(typeTanks[t.type].moves);
-      setArmor(typeTanks[t.type].armor);
-      setDamage(typeTanks[t.type].damage);
-    } else if (prevSelected !== null) {
-      setSelected(null);
-      setPrevSelected(null);
-      setBoard(prevBoard);
-      setMove("-");
-      setArmor("-");
-      setDamage("-");
+    if (turn) {
+      console.log("LEFT_CLICK");
+      socket.emit(Events.LEFT_CLICK, { row, col }, player, enemySocketId, (response) => {
+        if (response.success) {
+          if (response.board?.length > 0) {
+            setBoard(response.board);
+          }
+          setSelected(response.selected);
+          if (!response.selected) {
+            setMove("-");
+            setArmor("-");
+            setDamage("-");
+          } else {
+            const t = board[row][col];
+
+            setMove(typeTanks[t.type].moves);
+            setArmor(typeTanks[t.type].armor);
+            setDamage(typeTanks[t.type].damage);
+          }
+          setHighlighted(new Set(response.highlighted));
+        }
+      });
     }
   };
 
   const handleCellRightClick = (row, col) => {
     if (selected && turn) {
-      if (checkEndMove() && highlighted.has(`${row},${col}`)) {
-        setSelected(null);
-        setPrevSelected(null);
+      if (highlighted.has(`${row},${col}`)) {
         shot({ row, col });
       }
     }
   };
-
-  function castRay(set, board, startRow, startCol, typeShot, [dr, dc], startDist, endDist) {
-    if (typeShot === "tank") {
-      const rs = startRow + dr;
-      const cs = startCol + dc;
-      if (rs < 0 || rs >= SIZE || cs < 0 || cs >= SIZE) return;
-      if (board?.[rs]?.[cs]) return;
-
-      for (let d = startDist; d <= endDist; d++) {
-        const r = startRow + dr * d;
-        const c = startCol + dc * d;
-        if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) break;
-        set.add(`${r},${c}`);
-        if (board?.[r]?.[c]) break;
-      }
-    }
-
-    if (typeShot === "arta") {
-      for (let d = startDist; d <= endDist; d++) {
-        const r = startRow + dr * d;
-        const c = startCol + dc * d;
-        if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) break;
-        set.add(`${r},${c}`);
-      }
-    }
-  }
-
-  const highlighted = useMemo(() => {
-    const set = new Set();
-    if (!selected) return set;
-
-    const { row, col } = selected;
-    const tank = board?.[row]?.[col];
-    if (!tank) return set;
-
-    const typeTank = typeTanks[tank.type];
-
-    const front = DIRS[tank.rotate];
-    let left = null;
-    let right = null;
-    if (typeTank.shot.sides > 1) {
-      left = DIRS[(tank.rotate - 45 + 360) % 360];
-      right = DIRS[(tank.rotate + 45) % 360];
-    }
-
-    for (const dir of [front, left, right]) {
-      if (dir) {
-        castRay(
-          set,
-          board,
-          row,
-          col,
-          typeTank.shot.type,
-          dir,
-          typeTank.shot.min,
-          typeTank.shot.max,
-        );
-      }
-    }
-    return set;
-  }, [selected, board]);
 
   const cells = [];
   for (let row = 0; row < SIZE; row++) {
@@ -463,7 +341,7 @@ export function useGame(username) {
       const isLight = (row + col) % 2 === 0;
       const tank = board?.[row]?.[col] ?? null;
       const isSelected = selected && selected.row === row && selected.col === col;
-      const isHighlighted = highlighted.has(`${row},${col}`);
+      const isHighlighted = highlighted?.has(`${row},${col}`);
       const isAlly = tank?.player === player;
 
       cells.push(
@@ -508,7 +386,6 @@ export function useGame(username) {
     join,
     room,
     invite,
-    nextTurn,
     exit,
     start,
     isRoom,
