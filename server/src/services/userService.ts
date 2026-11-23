@@ -1,57 +1,45 @@
 import type { IUser } from "../interfaces/interfaces.js";
 
-class UserService {
-  private byName = new Map<string, IUser>(); // username  → user
-  private bySocket = new Map<string, string>(); // socketId  → username
+class UserService
+{
+  private users: IUser[] = [];
 
-  add(username: string, socketId: string): IUser {
-    const existing = this.byName.get(username);
-    if (existing && existing.socketId !== socketId) {
-      this.bySocket.delete(existing.socketId);
-    }
-
+  async add( username: string, socketId: string )
+  {
     const user: IUser = { username, socketId };
-    this.byName.set(username, user);
-    this.bySocket.set(socketId, username);
+    this.users.push( user );
     return user;
   }
 
-  deleteByName(username: string): boolean {
-    const user = this.byName.get(username);
-    if (!user) return false;
-
-    this.byName.delete(username);
-    this.bySocket.delete(user.socketId);
+  delete( username: string )
+  {
+    const index = this.users.findIndex( ( u ) => u.username === username );
+    if ( index === -1 ) return false;
+    this.users.splice( index, 1 );
     return true;
   }
 
-  deleteBySocket(socketId: string): boolean {
-    const username = this.bySocket.get(socketId);
-    if (!username) return false;
-
-    const user = this.byName.get(username);
-
-    if (!user || user.socketId !== socketId) {
-      this.bySocket.delete(socketId);
-      return false;
-    }
-
-    this.byName.delete(username);
-    this.bySocket.delete(socketId);
+  deleteBySocket( socket: string )
+  {
+    const index = this.users.findIndex( ( u ) => u.socketId === socket );
+    if ( index === -1 ) return false;
+    this.users.splice( index, 1 );
     return true;
   }
 
-  getBySocket(socketId: string): IUser | undefined {
-    const username = this.bySocket.get(socketId);
-    return username ? this.byName.get(username) : undefined;
+  getBySocket( socketId: string )
+  {
+    return this.users.find( ( u ) => u.socketId === socketId );
   }
 
-  getByName(name: string): IUser | undefined {
-    return this.byName.get(name);
+  getByName( name: string )
+  {
+    return this.users.find( ( u ) => u.username === name );
   }
 
-  getAll(): IUser[] {
-    return [...this.byName.values()];
+  getAll()
+  {
+    return this.users;
   }
 }
 

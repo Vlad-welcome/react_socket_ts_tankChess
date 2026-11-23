@@ -2,58 +2,62 @@ import type { Server, Socket } from "socket.io";
 import userService from "../services/userService.js";
 import { Events } from "../socketEvents.js";
 
-export const userController = (io: Server, socket: Socket): void => {
+export const userController = ( io: Server, socket: Socket ): void =>
+{
+  console.log( "Server connection" );
+
+  const { username } = socket.handshake.auth;
+  const name = typeof username === "string" ? username.trim() : "";
+
+  if ( name )
+  {
+    const user = userService.getByName( name );
+    if ( user )
+    {
+      user.socketId = socket.id;
+    }
+    else
+    {
+      userService.add( name, socket.id );
+    }
+  }
+  console.log( userService.getAll() );
+
+  socket.on( "disconnect", () =>
+  {
+    console.log( "Server disconnect" );
+    userService.deleteBySocket( socket.id );
+    console.log( userService.getAll() );
+  } );
+
   socket.on(
     Events.JOIN,
-    async (username: unknown, callback: (res: { success: boolean }) => void) => {
-      console.log("Server Events.JOIN");
-
-      const users = userService.getAll();
-      console.log(users);
-
-      if (typeof username !== "string") {
-        callback({ success: false });
+    ( username: unknown, callback: ( res: { success: boolean } ) => void ) =>
+    {
+      console.log( "Server Events.JOIN" );
+      if ( typeof username !== "string" )
+      {
+        callback( { success: false } );
         return;
       }
 
-      const name = username.trim().split(" ")[0];
-      if (!name) {
-        callback({ success: false });
+      const name = username.trim();
+      if ( !name )
+      {
+        callback( { success: false } );
         return;
       }
 
-      const user = await userService.getByName(name);
-      if (user) {
-        if (username.split(" ")[1] === "-") {
-          await userService.deleteByName(user.username);
-          callback({ success: false });
-          return;
-        }
-        callback({ success: false });
-        return;
+      const existing = userService.getByName( name );
+      if ( existing )
+      {
+        existing.socketId = socket.id;
       }
-
-      await userService.add(username.trim(), socket.id);
-      callback({ success: true });
+      else
+      {
+        userService.add( name, socket.id );
+      }
+      callback( { success: true } );
     },
   );
-
-  io.on("connection", (socket) => {
-    console.log("Server io connection");
-    const { username } = socket.handshake.auth;
-    userService.add(username, socket.id);
-
-    socket.on("disconnect", () => {
-      console.log("Server io disconnect");
-      userService.deleteBySocket(socket.id);
-    });
-  });
-
-  socket.on("disconnect", async () => {
-    console.log("Server disconnect");
-    const user = await userService.getBySocket(socket.id);
-    if (user) {
-      await userService.deleteByName(user.username);
-    }
-  });
 };

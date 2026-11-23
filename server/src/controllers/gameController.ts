@@ -16,6 +16,7 @@ import fs from "fs";
 import path from "node:path";
 import { isSea } from "node:sea";
 import { fileURLToPath } from "node:url";
+import type { HookOptions } from "node:test";
 
 const DIRS = {
   "-1,0": 0,
@@ -186,12 +187,13 @@ function initTypeTanksMap(SIZE: number) {
   return typeTanks;
 }
 function initBoard() {
-  let pathMap: string;
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  _history = new Set();
 
+  let pathMap: string;
   if (isSea()) {
     pathMap = path.join(__dirname, "maps", "_map.txt");
   } else {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
     pathMap = path.join(__dirname, "..", "..", "maps", "_map.txt");
   }
 
@@ -213,6 +215,10 @@ function initBoard() {
   _typeTanks = initTypeTanksMap(board.length);
   SIZE = board.length;
   _isWhiteTurn = true;
+  letters = Array.from(
+    { length: SIZE },
+    (_, i) => String.fromCharCode(97 + i), // 97 = 'a'
+  );
 }
 
 let _selected: Selected = null;
@@ -222,10 +228,13 @@ let _move: number = -1;
 let _prevBoard: Board;
 let _highlighted = new Set<string>();
 
+let _history: Set<string>;
+let letters: string[];
+
 export const gameController = (io: Server, socket: Socket): void => {
-  socket.on(Events.ROOM, async (callback: (res: { success: boolean }) => void) => {
+  socket.on(Events.ROOM, (callback: (res: { success: boolean }) => void) => {
     console.log("Server Events.ROOM");
-    const user = await userService.getBySocket(socket.id);
+    const user = userService.getBySocket(socket.id);
 
     if (user !== undefined) {
       callback({ success: true });
@@ -234,10 +243,10 @@ export const gameController = (io: Server, socket: Socket): void => {
     callback({ success: false });
   });
 
-  socket.on(Events.INVITE, async (name: string, callback: (res: { success: boolean }) => void) => {
+  socket.on(Events.INVITE, (name: string, callback: (res: { success: boolean }) => void) => {
     console.log("Server Events.INVITE");
-    const user = await userService.getByName(name);
-    const curUser = await userService.getBySocket(socket.id);
+    const user = userService.getByName(name);
+    const curUser = userService.getBySocket(socket.id);
 
     if (user && curUser) {
       initBoard();
@@ -258,62 +267,68 @@ export const gameController = (io: Server, socket: Socket): void => {
     callback({ success: false });
   });
 
-  socket.on(Events.GAME_START, async (enemyPlayer: string) => {
+  socket.on(Events.GAME_START, (enemyPlayer: string) => {
     console.log("Server Events.GAME_START");
 
-    const user = await userService.getByName(enemyPlayer);
+    const user = userService.getByName(enemyPlayer);
+    const curUser = userService.getBySocket(socket.id);
 
-    const payload = {
-      enemyPlayer: enemyPlayer,
-      board: _board,
-      typeTanks: _typeTanks,
-      size: SIZE,
-    };
-    io.to(user!.socketId).emit(Events.GAME_STARTED, payload);
+    if (user && curUser) {
+      const payload = {
+        enemyPlayer: curUser.username,
+        board: _board,
+        typeTanks: _typeTanks,
+        size: SIZE,
+      };
+      io.to(user.socketId).emit(Events.GAME_STARTED, payload);
+    }
   });
 
   socket.on(
     Events.NEXT_TURN,
-    async (enemyPlayer: string, callback: (res: { success: boolean }) => void) => {
+    (enemyPlayer: string, callback: (res: { success: boolean; history: string[] }) => void) => {
       console.log("Server Events.NEXT_TURN");
 
-      const user = await userService.getByName(enemyPlayer);
+      const user = userService.getByName(enemyPlayer);
 
       if (checkEndMove()) {
+        addHistory();
         _isWhiteTurn = !_isWhiteTurn;
         _prevBoard = structuredClone(_board);
-        const payload = { board: _board };
+        _selected = null;
+        const payload = { board: _board, history: [..._history] };
         io.to(user!.socketId).emit(Events.NEXT_TURNED, payload);
-        callback({ success: true });
+        callback({ success: true, history: [..._history] });
       } else {
-        callback({ success: false });
+        callback({ success: false, history: [] });
       }
     },
   );
 
-  socket.on(Events.EXIT, async (enemyPlayer: string, text: string) => {
+  socket.on(Events.EXIT, (enemyPlayer: string, text: string) => {
     console.log("Server Events.EXIT");
-    const user = await userService.getByName(enemyPlayer);
+    const user = userService.getByName(enemyPlayer);
     io.to(user!.socketId).emit(Events.EXITED, { text: text });
   });
 
   socket.on(
     Events.SHOT,
-    async (
+    (
       enemyPlayer: string,
       shoted: Coord,
-      callback: (res: { success: boolean; board: Board; win: boolean }) => void,
+      callback: (res: { success: boolean; board: Board; win: boolean; history: string[] }) => void,
     ) => {
       console.log("Server Events.SHOT");
 
       if (!checkEndMove()) {
         console.log("no end move");
-        callback({ success: false, board: _board, win: false });
+        callback({ success: false, board: _board, win: false, history: [] });
         return;
       }
 
       let win = false;
-      if (checkShoot(_board, _typeTanks, _selected, shoted)) {
+      let isShoot = checkShoot(_board, _typeTanks, _selected, shoted);
+      if (isShoot) {
         console.log("shoted tank");
         if (checkWin(_board, shoted)) {
           console.log("Kill Kinght");
@@ -324,20 +339,27 @@ export const gameController = (io: Server, socket: Socket): void => {
         _board[shoted!.row][shoted!.col] = wall;
       }
 
+      if (isShoot) {
+        addHistory(shoted);
+      } else {
+        addHistory();
+      }
+
       _isWhiteTurn = !_isWhiteTurn;
       _prevBoard = structuredClone(_board);
+      _selected = null;
 
-      const user = await userService.getByName(enemyPlayer);
+      const user = userService.getByName(enemyPlayer);
 
-      const payload = { board: _board, win };
+      const payload = { board: _board, win, history: [..._history] };
       io.to(user!.socketId).emit(Events.SHOTED, payload);
-      callback({ success: true, board: _board, win });
+      callback({ success: true, board: _board, win, history: [..._history] });
     },
   );
 
   socket.on(
     Events.LEFT_CLICK,
-    async (
+    (
       select: Coord,
       player: number,
       enemyPlayer: string,
@@ -374,7 +396,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         _move = (_typeTanks[tank.type] as ITankType).moves;
       }
 
-      const user = await userService.getByName(enemyPlayer);
+      const user = userService.getByName(enemyPlayer);
 
       const payload = { board: _board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
@@ -390,7 +412,7 @@ export const gameController = (io: Server, socket: Socket): void => {
 
   socket.on(
     Events.MOVE_FORWARD,
-    async (
+    (
       enemyPlayer: string,
       callback: (res: {
         success: boolean;
@@ -471,7 +493,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         _move -= 1;
       }
 
-      const user = await userService.getByName(enemyPlayer);
+      const user = userService.getByName(enemyPlayer);
 
       const payload = { board: _board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
@@ -489,7 +511,7 @@ export const gameController = (io: Server, socket: Socket): void => {
 
   socket.on(
     Events.MOVE_BACK,
-    async (
+    (
       enemyPlayer: string,
       callback: (res: {
         success: boolean;
@@ -584,7 +606,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         _move = 0;
       }
 
-      const user = await userService.getByName(enemyPlayer);
+      const user = userService.getByName(enemyPlayer);
 
       const payload = { board: _board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
@@ -602,7 +624,7 @@ export const gameController = (io: Server, socket: Socket): void => {
 
   socket.on(
     Events.TANK_ROTATE,
-    async (
+    (
       enemyPlayer: string,
       angle: number,
       callback: (res: {
@@ -646,7 +668,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       _highlighted = setHighlighted();
       _move -= 1;
 
-      const user = await userService.getByName(enemyPlayer);
+      const user = userService.getByName(enemyPlayer);
 
       const payload = { board: _board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
@@ -822,5 +844,20 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
     }
     return set;
+  }
+
+  function addHistory(shoted: Coord = null) {
+    const number = _history.size + 1;
+    const turn = _isWhiteTurn ? "w" : "b";
+    const startCoord = `${letters[_prevSelected!.col]}${_prevSelected!.row + 1}`;
+    const endCoord = `${letters[_selected!.col]}${_selected!.row + 1}`;
+    const rotate = _selected!.rotate;
+
+    if (shoted) {
+      const enemy = `${letters[shoted!.col]}${shoted!.row + 1}`;
+      _history.add(`${number}-${turn}) ${startCoord} > ${endCoord}/${rotate} (${enemy})`);
+    } else {
+      _history.add(`${number}-${turn}) ${startCoord} > ${endCoord}/${rotate}`);
+    }
   }
 };

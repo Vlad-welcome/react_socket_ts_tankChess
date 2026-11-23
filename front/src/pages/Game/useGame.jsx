@@ -24,8 +24,8 @@ export function useGame(username) {
       console.log("disconnect");
     };
     const onInvited = async (response) => {
-      console.log("invited");
-      const ok = await ConfirmFunc(`Вас приглашает в игру. Принять?`);
+      console.log(`invited: ${response.enemyPlayer}`);
+      const ok = await ConfirmFunc(`Вас приглашает в игру: ${response.enemyPlayer}. Принять?`);
       if (ok) {
         document.title = "Ожидайте";
         setPlayer(2);
@@ -42,7 +42,7 @@ export function useGame(username) {
     const onGameStarted = (response) => {
       document.title = "Ходите";
 
-      console.log("started");
+      console.log(`started: ${response.enemyPlayer}`);
       setTurn(true);
       setStart(true);
       setEnemyPlayer(response.enemyPlayer);
@@ -54,6 +54,7 @@ export function useGame(username) {
       console.log("turned");
       setTurn(true);
       setBoard(response.board);
+      setHistory(response.history);
       document.title = "Ходите";
     };
     const onExited = async (response) => {
@@ -67,6 +68,7 @@ export function useGame(username) {
 
       setTurn(!response.win);
       setBoard(response.board);
+      setHistory(response.history);
       document.title = "Ходите";
 
       if (response.win) {
@@ -169,6 +171,7 @@ export function useGame(username) {
         document.title = "Ходите";
       } else {
         document.title = "Ожидайте";
+        setHistory(response.history);
         setTurn(false);
         setSelected(null);
         setHighlighted(null);
@@ -198,6 +201,7 @@ export function useGame(username) {
         document.title = "Ожидайте";
 
         setBoard(response.board);
+        setHistory(response.history);
         setSelected(null);
         setHighlighted(null);
         setMove("-");
@@ -228,24 +232,38 @@ export function useGame(username) {
   const [armor, setArmor] = useState("-");
   const [damage, setDamage] = useState("-");
 
+  const [history, setHistory] = useState();
+
   //Поворот на 45
-  const rotateSelected = useCallback(
-    async (delta) => {
-      if (!selected || move <= 0) return;
+  const rotateSelectedLeft = useCallback(async () => {
+    if (!selected || move <= 0) return;
 
-      console.log("rotateSelected");
+    console.log("rotateSelected");
 
-      socket.emit(Events.TANK_ROTATE, enemyPlayer, delta, (response) => {
-        if (response.success) {
-          setBoard(response.board);
-          setSelected(response.selected);
-          setHighlighted(new Set(response.highlighted));
-          setMove(response.move);
-        }
-      });
-    },
-    [selected, board, move],
-  );
+    socket.emit(Events.TANK_ROTATE, enemyPlayer, -1, (response) => {
+      if (response.success) {
+        setBoard(response.board);
+        setSelected(response.selected);
+        setHighlighted(new Set(response.highlighted));
+        setMove(response.move);
+      }
+    });
+  }, [selected, board, move]);
+
+  const rotateSelectedRight = useCallback(async () => {
+    if (!selected || move <= 0) return;
+
+    console.log("rotateSelected");
+
+    socket.emit(Events.TANK_ROTATE, enemyPlayer, 1, (response) => {
+      if (response.success) {
+        setBoard(response.board);
+        setSelected(response.selected);
+        setHighlighted(new Set(response.highlighted));
+        setMove(response.move);
+      }
+    });
+  }, [selected, board, move]);
 
   // передний ход
   const moveSelected = useCallback(async () => {
@@ -300,10 +318,10 @@ export function useGame(username) {
     const onKeyDown = (e) => {
       if (e.code === "KeyA" || e.code === "ArrowLeft") {
         e.preventDefault();
-        rotateSelected(-1);
+        rotateSelectedLeft();
       } else if (e.code === "KeyD" || e.code === "ArrowRight") {
         e.preventDefault();
-        rotateSelected(+1);
+        rotateSelectedRight();
       } else if (e.code === "KeyW" || e.code === "ArrowUp") {
         e.preventDefault();
         moveSelected();
@@ -318,32 +336,36 @@ export function useGame(username) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selected, rotateSelected, moveSelected, moveBackSelected]);
+  }, [selected, rotateSelectedLeft, rotateSelectedRight, moveSelected, moveBackSelected]);
 
   // клик по танку — выбрать; клик по пустой клетке — снять выбор
   const handleCellClick = (row, col) => {
     if (turn) {
       console.log("LEFT_CLICK");
-      socket.emit(Events.LEFT_CLICK, { row, col }, player, enemyPlayer, (response) => {
-        if (response.success) {
-          if (response.board?.length > 0) {
-            setBoard(response.board);
-          }
-          setSelected(response.selected);
-          if (!response.selected) {
-            setMove("-");
-            setArmor("-");
-            setDamage("-");
-          } else {
-            const t = board[row][col];
+      if (selected && board[row][col]?.player !== player && highlighted.has(`${row},${col}`)) {
+        shot({ row, col });
+      } else {
+        socket.emit(Events.LEFT_CLICK, { row, col }, player, enemyPlayer, (response) => {
+          if (response.success) {
+            if (response.board?.length > 0) {
+              setBoard(response.board);
+            }
+            setSelected(response.selected);
+            if (!response.selected) {
+              setMove("-");
+              setArmor("-");
+              setDamage("-");
+            } else {
+              const t = board[row][col];
 
-            setMove(typeTanks[t.type].moves);
-            setArmor(typeTanks[t.type].armor);
-            setDamage(typeTanks[t.type].damage);
+              setMove(typeTanks[t.type].moves);
+              setArmor(typeTanks[t.type].armor);
+              setDamage(typeTanks[t.type].damage);
+            }
+            setHighlighted(new Set(response.highlighted));
           }
-          setHighlighted(new Set(response.highlighted));
-        }
-      });
+        });
+      }
     }
   };
 
@@ -415,5 +437,11 @@ export function useGame(username) {
     armor,
     damage,
     SIZE,
+    rotateSelectedLeft,
+    rotateSelectedRight,
+    moveSelected,
+    moveBackSelected,
+    nextTurn,
+    history,
   };
 }

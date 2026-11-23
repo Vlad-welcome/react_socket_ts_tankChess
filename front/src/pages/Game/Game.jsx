@@ -56,23 +56,122 @@ export const Game = () => {
       </div>
     );
   } else if (game.start) {
+    const letters = Array.from(
+      { length: game.SIZE },
+      (_, i) => String.fromCharCode(97 + i), // 97 = 'a'
+    );
+
+    // цифры: 0..SIZE-1 сверху вниз (совпадает с data-row)
+    const numbers = Array.from({ length: game.SIZE }, (_, i) => i + 1);
+
     return (
       <div className="d-flex min-vh-100 justify-content-center align-items-center">
         <div>
-          <div className="d-flex justify-content-center align-items-center">
-            <h3>{!game.turn ? "Ожидайте" : "Ходите"}</h3>
-            <div className="d-flex justify-content-center ms-3">
-              <Button variant="danger" onClick={onExit}>
-                Выйти
-              </Button>
+          <div className="d-flex flex-column flex-md-row align-items-center">
+            <div className="me-0 mb-3 mb-md-0 me-md-3">
+              <div>
+                <h5>Параметры</h5>
+              </div>
+              <div>
+                <span>
+                  <b>- Move: {game.move}</b>
+                </span>
+              </div>
+              <div>
+                <span>- Armor:</span>
+                <div>
+                  <span>--- front {game.armor.front}</span>
+                </div>
+                <div>
+                  <span>--- side {game.armor.side}</span>
+                </div>
+                <div>
+                  <span>--- back {game.armor.back}</span>
+                </div>
+              </div>
+              <div>
+                <span>
+                  <b>- Damage: {game.damage}</b>
+                </span>
+              </div>
+
+              <div className="d-flex mt-2 mt-md-4">
+                <div>
+                  <div className="d-flex justify-content-center gap-1 mb-1">
+                    <Button variant="outline-primary" onClick={game.moveSelected}>
+                      W
+                    </Button>
+                    <Button variant="outline-primary" onClick={game.nextTurn}>
+                      Enter
+                    </Button>
+                  </div>
+                  <div className="d-flex gap-1">
+                    <Button variant="outline-primary" onClick={game.rotateSelectedLeft}>
+                      A
+                    </Button>
+                    <Button variant="outline-primary" onClick={game.moveBackSelected}>
+                      S
+                    </Button>
+                    <Button variant="outline-primary" onClick={game.rotateSelectedRight}>
+                      D
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="mb-2">
-            Параметры: <b>move: {game.move}</b> armor: front {game.armor.front}, side{" "}
-            {game.armor.side}, back {game.armor.back} damage: {game.damage}
-          </div>
-          <div className="chess-board" style={{ "--grid-size": game.SIZE }}>
-            {game.cells}
+
+            <div>
+              <div className="d-flex justify-content-center mb-2">
+                <h3>{!game.turn ? "Ожидайте" : "Ходите"}</h3>
+                <div className="d-flex justify-content-center ms-3">
+                  <Button variant="danger" onClick={onExit}>
+                    Выйти
+                  </Button>
+                </div>
+              </div>
+              <div className="board-wrapper" style={{ "--grid-size": game.SIZE }}>
+                {/* верхний ряд */}
+                <div />
+                <div className="labels labels-col">
+                  {letters.map((l) => (
+                    <span key={l}>{l}</span>
+                  ))}
+                </div>
+                <div />
+
+                {/* средний ряд */}
+                <div className="labels labels-row">
+                  {numbers.map((n) => (
+                    <span key={n}>{n}</span>
+                  ))}
+                </div>
+
+                <div className="chess-board">{game.cells}</div>
+
+                <div className="labels labels-row">
+                  {numbers.map((n) => (
+                    <span key={n}>{n}</span>
+                  ))}
+                </div>
+
+                {/* нижний ряд */}
+                <div />
+                <div className="labels labels-col">
+                  {letters.map((l) => (
+                    <span key={l}>{l}</span>
+                  ))}
+                </div>
+                <div />
+              </div>
+            </div>
+
+            <div className="ms-0 mt-2 ms-md-3 history-list">
+              {game.history?.map((item, index) => (
+                <div key={index} className="history-item">
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
