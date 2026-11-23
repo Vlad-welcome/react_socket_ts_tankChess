@@ -50,3 +50,17 @@ export interface ISelected extends ICoord {
   rotate: number;
 }
 export type Selected = ISelected | null;
+
+export interface IGameSession {
+  board: Board;
+  prevBoard: Board;
+  size: number;
+  isWhiteTurn: boolean;
+  selected: Selected;
+  prevSelected: Selected;
+  move: number;
+  highlighted: Set<string>;
+  history: Set<string>;
+  letters: string[];
+}
+export type GameSession = IGameSession;

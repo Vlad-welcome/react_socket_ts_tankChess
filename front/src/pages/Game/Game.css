@@ -55,15 +55,15 @@
 
 /* подсветка выбранной клетки */
 .cell.selected {
-  outline: 3px solid #ff4646;
-  outline-offset: -3px;
+  outline: 2px solid #ff4646;
+  outline-offset: -2px;
   z-index: 1;
 }
 
 /* подсветка союзной техники */
 .cell.ally {
-  outline: 3px solid #46ff5f;
-  outline-offset: -3px;
+  outline: 2px solid #46ff5f;
+  outline-offset: -2px;
   z-index: 1;
 }
 
@@ -72,7 +72,7 @@
   top: 50%;
   left: 50%;
   translate: -50% -50%;
-  width: min(8vmin, var(--img-size, 72px)); 
+  width: min(7vmin, var(--img-size, 72px)); 
 }
 
 .cell.highlight::after {

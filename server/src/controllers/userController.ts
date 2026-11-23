@@ -2,62 +2,70 @@ import type { Server, Socket } from "socket.io";
 import userService from "../services/userService.js";
 import { Events } from "../socketEvents.js";
 
-export const userController = ( io: Server, socket: Socket ): void =>
-{
-  console.log( "Server connection" );
+import { isSea } from "node:sea";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+export const userController = (io: Server, socket: Socket): void => {
+  console.log("Server connection");
 
   const { username } = socket.handshake.auth;
   const name = typeof username === "string" ? username.trim() : "";
 
-  if ( name )
-  {
-    const user = userService.getByName( name );
-    if ( user )
-    {
+  if (name) {
+    const user = userService.getByName(name);
+    if (user) {
       user.socketId = socket.id;
-    }
-    else
-    {
-      userService.add( name, socket.id );
+    } else {
+      userService.add(name, socket.id);
     }
   }
-  console.log( userService.getAll() );
+  console.log(userService.getAll());
 
-  socket.on( "disconnect", () =>
-  {
-    console.log( "Server disconnect" );
-    userService.deleteBySocket( socket.id );
-    console.log( userService.getAll() );
-  } );
+  socket.on("disconnect", () => {
+    console.log("Server disconnect");
+    userService.deleteBySocket(socket.id);
+    console.log(userService.getAll());
+  });
 
   socket.on(
     Events.JOIN,
-    ( username: unknown, callback: ( res: { success: boolean } ) => void ) =>
-    {
-      console.log( "Server Events.JOIN" );
-      if ( typeof username !== "string" )
-      {
-        callback( { success: false } );
+    (username: unknown, callback: (res: { success: boolean; maps: string[] }) => void) => {
+      console.log("Server Events.JOIN");
+      if (typeof username !== "string") {
+        callback({ success: false, maps: [] });
         return;
       }
 
       const name = username.trim();
-      if ( !name )
-      {
-        callback( { success: false } );
+      if (!name) {
+        callback({ success: false, maps: [] });
         return;
       }
 
-      const existing = userService.getByName( name );
-      if ( existing )
-      {
+      const existing = userService.getByName(name);
+      if (existing) {
         existing.socketId = socket.id;
+      } else {
+        userService.add(name, socket.id);
       }
-      else
-      {
-        userService.add( name, socket.id );
+
+      let maps: string[] = [];
+      let pathToMaps: string;
+      if (isSea()) {
+        pathToMaps = path.join(__dirname, "maps");
+      } else {
+        const __dirname = path.dirname(fileURLToPath(import.meta.url));
+        pathToMaps = path.join(__dirname, "..", "..", "maps");
       }
-      callback( { success: true } );
+
+      maps = fs
+        .readdirSync(pathToMaps)
+        .filter((file) => file.endsWith(".txt") && !file.startsWith("_"))
+        .map((file) => file.replace(/\.txt$/, ""));
+
+      callback({ success: true, maps: maps });
     },
   );
 };

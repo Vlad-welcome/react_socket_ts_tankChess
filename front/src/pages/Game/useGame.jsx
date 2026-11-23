@@ -9,7 +9,6 @@ export function useGame(username) {
   const [connected, setConnected] = useState(false);
   const [enemyPlayer, setEnemyPlayer] = useState(-1);
   const [start, setStart] = useState(false);
-  const [isRoom, setIsRoom] = useState(false);
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -30,25 +29,28 @@ export function useGame(username) {
         document.title = "Ожидайте";
         setPlayer(2);
         setEnemyPlayer(response.enemyPlayer);
+        setTurn(false);
 
         socket.emit(Events.GAME_START, response.enemyPlayer);
-        setIsRoom(true);
         setStart(true);
         setSIZE(response.size);
         setTypeTanks(response.typeTanks);
         setBoard(response.board);
+        setHistory(null);
       }
     };
     const onGameStarted = (response) => {
       document.title = "Ходите";
+      setPlayer(1);
+      setTurn(true);
 
       console.log(`started: ${response.enemyPlayer}`);
-      setTurn(true);
       setStart(true);
       setEnemyPlayer(response.enemyPlayer);
       setSIZE(response.size);
       setTypeTanks(response.typeTanks);
       setBoard(response.board);
+      setHistory(null);
     };
     const onNextTurned = (response) => {
       console.log("turned");
@@ -123,6 +125,8 @@ export function useGame(username) {
       s.emit(Events.JOIN, username, async (response) => {
         if (response.success) {
           onResult(true);
+          setMaps(response.maps);
+          setSelectedMap(response?.maps?.length > 0 ? response?.maps[0] : null);
         } else {
           s.disconnect();
           onResult(false);
@@ -133,25 +137,18 @@ export function useGame(username) {
     s.connect();
   };
 
-  const room = () => {
-    console.log("room");
-    socket.emit(Events.ROOM, (response) => {
-      if (response.success) {
-        setIsRoom(true);
-        setPlayer(1);
-      }
-    });
-  };
-
-  const invite = (invitePlayer) => {
+  const invite = async (invitePlayer) => {
     console.log("invite");
     const name = invitePlayer?.trim();
     if (!name) {
+      await ConfirmFunc("Пользователь не в сети", "Ок", false);
       return;
     }
-    socket.emit(Events.INVITE, name, async (response) => {
+    socket.emit(Events.INVITE, name, selectedMap, async (response) => {
       if (!response.success) {
         await ConfirmFunc("Пользователь не в сети", "Ок", false);
+      } else {
+        await ConfirmFunc("Ожидайте ответа", "Ок", false);
       }
     });
   };
@@ -187,7 +184,6 @@ export function useGame(username) {
 
     console.log("endGame");
     setStart(false);
-    setIsRoom(false);
     setEnemyPlayer(-1);
 
     setSelected(false);
@@ -233,6 +229,9 @@ export function useGame(username) {
   const [damage, setDamage] = useState("-");
 
   const [history, setHistory] = useState();
+
+  const [maps, setMaps] = useState(null);
+  const [selectedMap, setSelectedMap] = useState(null);
 
   //Поворот на 45
   const rotateSelectedLeft = useCallback(async () => {
@@ -414,7 +413,7 @@ export function useGame(username) {
               draggable={false}
               style={{
                 transform: `rotate(${tank?.rotate || 0}deg)`,
-                "--img-size": SIZE === 16 ? "56px" : "72px",
+                "--img-size": SIZE === 16 ? "52px" : "72px",
               }}
             />
           )}
@@ -426,11 +425,9 @@ export function useGame(username) {
   return {
     connected,
     join,
-    room,
     invite,
     exit,
     start,
-    isRoom,
     cells,
     turn,
     move,
@@ -443,5 +440,8 @@ export function useGame(username) {
     moveBackSelected,
     nextTurn,
     history,
+    maps,
+    setSelectedMap,
+    selectedMap,
   };
 }

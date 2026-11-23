@@ -10,13 +10,13 @@ import type {
   IWall,
   Cell,
   Selected,
+  GameSession,
 } from "../interfaces/interfaces.js";
 
 import fs from "fs";
 import path from "node:path";
 import { isSea } from "node:sea";
 import { fileURLToPath } from "node:url";
-import type { HookOptions } from "node:test";
 
 const DIRS = {
   "-1,0": 0,
@@ -58,11 +58,12 @@ const objects: Record<string, Cell> = {
   bHM: { type: "bHM", player: 2, rotate: 180 },
 };
 
-let _board: Board;
 let _typeTanks: TypeTanksMap;
-let SIZE: number;
 const ANGLE = 45;
-let _isWhiteTurn = true;
+
+const gamesSession = new Map<string, GameSession>();
+const playersGame = new Map<string, string>();
+
 function initTypeTanksMap(SIZE: number) {
   let typeTanks: TypeTanksMap = {
     //block
@@ -186,50 +187,40 @@ function initTypeTanksMap(SIZE: number) {
   };
   return typeTanks;
 }
-function initBoard() {
-  _history = new Set();
+function initBoard(map: string, gameSession: GameSession) {
+  gameSession.history = new Set();
 
   let pathMap: string;
   if (isSea()) {
-    pathMap = path.join(__dirname, "maps", "_map.txt");
+    pathMap = path.join(__dirname, "maps", `${map}.txt`);
   } else {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    pathMap = path.join(__dirname, "..", "..", "maps", "_map.txt");
+    pathMap = path.join(__dirname, "..", "..", "maps", `${map}.txt`);
   }
 
   const board = JSON.parse(fs.readFileSync(pathMap, "utf-8"));
   let boardLength = board.length;
-  _board = Array.from({ length: boardLength }, () => Array(boardLength).fill(null));
+  gameSession.board = Array.from({ length: boardLength }, () => Array(boardLength).fill(null));
 
   for (let i = 0; i < boardLength; i++) {
     for (let j = 0; j < boardLength; j++) {
       const cell: string = board[i][j].trim();
 
       if (cell) {
-        _board[i][j] = { ...objects[cell] } as Cell;
+        gameSession.board[i][j] = { ...objects[cell] } as Cell;
       }
     }
   }
 
-  _prevBoard = structuredClone(_board);
+  gameSession.prevBoard = structuredClone(gameSession.board);
   _typeTanks = initTypeTanksMap(board.length);
-  SIZE = board.length;
-  _isWhiteTurn = true;
-  letters = Array.from(
-    { length: SIZE },
+  gameSession.size = board.length;
+  gameSession.isWhiteTurn = true;
+  gameSession.letters = Array.from(
+    { length: gameSession.size },
     (_, i) => String.fromCharCode(97 + i), // 97 = 'a'
   );
 }
-
-let _selected: Selected = null;
-let _prevSelected: Selected = null;
-let _move: number = -1;
-
-let _prevBoard: Board;
-let _highlighted = new Set<string>();
-
-let _history: Set<string>;
-let letters: string[];
 
 export const gameController = (io: Server, socket: Socket): void => {
   socket.on(Events.ROOM, (callback: (res: { success: boolean }) => void) => {
@@ -243,29 +234,67 @@ export const gameController = (io: Server, socket: Socket): void => {
     callback({ success: false });
   });
 
-  socket.on(Events.INVITE, (name: string, callback: (res: { success: boolean }) => void) => {
-    console.log("Server Events.INVITE");
-    const user = userService.getByName(name);
-    const curUser = userService.getBySocket(socket.id);
+  socket.on(
+    Events.INVITE,
+    (name: string, map: string, callback: (res: { success: boolean }) => void) => {
+      console.log("Server Events.INVITE");
+      const user = userService.getByName(name);
+      const curUser = userService.getBySocket(socket.id);
 
-    if (user && curUser) {
-      initBoard();
+      if (user && curUser && map) {
+        console.log(map);
+        const gameSession: GameSession = {
+          board: [],
+          prevBoard: [],
+          selected: null,
+          prevSelected: null,
+          size: -1,
+          move: -1,
+          letters: [],
+          history: new Set(),
+          highlighted: new Set(),
+          isWhiteTurn: true,
+        };
+        initBoard(map, gameSession);
 
-      // Пуш приглашённому игроку
-      const payload = {
-        enemyPlayer: curUser.username,
-        board: _board,
-        typeTanks: _typeTanks,
-        size: SIZE,
-      };
-      io.to(user.socketId).emit(Events.INVITED, payload);
+        const idGameSession = `${curUser.username},${user.username}`;
 
-      callback({ success: true });
-      return;
-    }
+        const player1 = playersGame.get(curUser.username);
+        const player2 = playersGame.get(user.username);
+        if (player1) {
+          playersGame.delete(curUser.username);
+        }
+        if (player2) {
+          playersGame.delete(user.username);
+        }
+        if (player1 || player2) {
+          const game = player1 || player2 || "";
+          gamesSession.delete(game);
+        }
 
-    callback({ success: false });
-  });
+        gamesSession.set(idGameSession, gameSession);
+        playersGame.set(curUser.username, idGameSession);
+        playersGame.set(user.username, idGameSession);
+
+        console.log(gamesSession);
+        console.log(playersGame);
+
+        // Пуш приглашённому игроку
+        const payload = {
+          enemyPlayer: curUser.username,
+          board: gameSession.board,
+          typeTanks: _typeTanks,
+          size: gameSession.size,
+        };
+        io.to(user.socketId).emit(Events.INVITED, payload);
+
+        callback({ success: true });
+        return;
+      }
+
+      callback({ success: false });
+    },
+  );
 
   socket.on(Events.GAME_START, (enemyPlayer: string) => {
     console.log("Server Events.GAME_START");
@@ -274,11 +303,14 @@ export const gameController = (io: Server, socket: Socket): void => {
     const curUser = userService.getBySocket(socket.id);
 
     if (user && curUser) {
+      const idSession = playersGame.get(user.username);
+      const gameSession = gamesSession.get(idSession!);
+
       const payload = {
         enemyPlayer: curUser.username,
-        board: _board,
+        board: gameSession!.board,
         typeTanks: _typeTanks,
-        size: SIZE,
+        size: gameSession!.size,
       };
       io.to(user.socketId).emit(Events.GAME_STARTED, payload);
     }
@@ -291,14 +323,18 @@ export const gameController = (io: Server, socket: Socket): void => {
 
       const user = userService.getByName(enemyPlayer);
 
-      if (checkEndMove()) {
-        addHistory();
-        _isWhiteTurn = !_isWhiteTurn;
-        _prevBoard = structuredClone(_board);
-        _selected = null;
-        const payload = { board: _board, history: [..._history] };
+      const idSession = playersGame.get(user!.username);
+      const gameSession = gamesSession.get(idSession!);
+
+      if (checkEndMove(gameSession!)) {
+        addHistory(gameSession!);
+        gameSession!.isWhiteTurn = !gameSession!.isWhiteTurn;
+        gameSession!.prevBoard = structuredClone(gameSession!.board);
+        gameSession!.selected = null;
+        gameSession!.highlighted = new Set();
+        const payload = { board: gameSession!.board, history: [...gameSession!.history] };
         io.to(user!.socketId).emit(Events.NEXT_TURNED, payload);
-        callback({ success: true, history: [..._history] });
+        callback({ success: true, history: [...gameSession!.history] });
       } else {
         callback({ success: false, history: [] });
       }
@@ -308,6 +344,24 @@ export const gameController = (io: Server, socket: Socket): void => {
   socket.on(Events.EXIT, (enemyPlayer: string, text: string) => {
     console.log("Server Events.EXIT");
     const user = userService.getByName(enemyPlayer);
+    const curUser = userService.getBySocket(socket.id);
+
+    const player1 = playersGame.get(curUser!.username);
+    const player2 = playersGame.get(user!.username);
+    if (player1) {
+      playersGame.delete(curUser!.username);
+    }
+    if (player2) {
+      playersGame.delete(user!.username);
+    }
+    if (player1 || player2) {
+      const game = player1 || player2 || "";
+      gamesSession.delete(game);
+    }
+
+    console.log(gamesSession);
+    console.log(playersGame);
+
     io.to(user!.socketId).emit(Events.EXITED, { text: text });
   });
 
@@ -320,40 +374,55 @@ export const gameController = (io: Server, socket: Socket): void => {
     ) => {
       console.log("Server Events.SHOT");
 
-      if (!checkEndMove()) {
+      const idSession = playersGame.get(enemyPlayer);
+      const gameSession = gamesSession.get(idSession!);
+
+      if (!checkEndMove(gameSession!)) {
         console.log("no end move");
-        callback({ success: false, board: _board, win: false, history: [] });
+        callback({ success: false, board: gameSession!.board, win: false, history: [] });
         return;
       }
 
       let win = false;
-      let isShoot = checkShoot(_board, _typeTanks, _selected, shoted);
+      let isShoot = checkShoot(
+        gameSession!,
+        gameSession!.board,
+        _typeTanks,
+        gameSession!.selected,
+        shoted,
+      );
       if (isShoot) {
         console.log("shoted tank");
-        if (checkWin(_board, shoted)) {
+        if (checkWin(gameSession!.board, shoted)) {
           console.log("Kill Kinght");
           win = true;
         }
 
         const wall: IWall = { type: "wall" };
-        _board[shoted!.row][shoted!.col] = wall;
+        gameSession!.board[shoted!.row][shoted!.col] = wall;
       }
 
       if (isShoot) {
-        addHistory(shoted);
+        addHistory(gameSession!, shoted);
       } else {
-        addHistory();
+        addHistory(gameSession!);
       }
 
-      _isWhiteTurn = !_isWhiteTurn;
-      _prevBoard = structuredClone(_board);
-      _selected = null;
+      gameSession!.isWhiteTurn = !gameSession!.isWhiteTurn;
+      gameSession!.prevBoard = structuredClone(gameSession!.board);
+      gameSession!.selected = null;
+      gameSession!.highlighted = new Set();
 
       const user = userService.getByName(enemyPlayer);
 
-      const payload = { board: _board, win, history: [..._history] };
+      const payload = { board: gameSession!.board, win, history: [...gameSession!.history] };
       io.to(user!.socketId).emit(Events.SHOTED, payload);
-      callback({ success: true, board: _board, win, history: [..._history] });
+      callback({
+        success: true,
+        board: gameSession!.board,
+        win,
+        history: [...gameSession!.history],
+      });
     },
   );
 
@@ -371,41 +440,46 @@ export const gameController = (io: Server, socket: Socket): void => {
       }) => void,
     ) => {
       console.log("Server Events.LEFT_CLICK");
-      const tank = _board[select!.row][select!.col] as ITank;
+
+      const idSession = playersGame.get(enemyPlayer);
+      const gameSession = gamesSession.get(idSession!);
+
+      const tank = gameSession!.board[select!.row][select!.col] as ITank;
       let board: Board = [];
-      const turn = (player === 1 && _isWhiteTurn) || (player !== 1 && !_isWhiteTurn);
+      const turn =
+        (player === 1 && gameSession!.isWhiteTurn) || (player !== 1 && !gameSession!.isWhiteTurn);
 
       if (!(tank && turn && tank.player === player)) {
         console.log("click empty");
-        _board = structuredClone(_prevBoard);
-        board = _board;
+        gameSession!.board = structuredClone(gameSession!.prevBoard);
+        board = gameSession!.board;
 
-        _selected = null;
-        _prevSelected = null;
-        _highlighted = new Set<string>();
+        gameSession!.selected = null;
+        gameSession!.prevSelected = null;
+        gameSession!.highlighted = new Set<string>();
       } else {
         console.log("click tank");
-        if (_selected) {
+        if (gameSession!.selected) {
           console.log("click another tank");
-          _board = structuredClone(_prevBoard);
-          board = _board;
+          gameSession!.board = structuredClone(gameSession!.prevBoard);
+          board = gameSession!.board;
         }
-        _selected = { row: select!.row, col: select!.col, rotate: tank.rotate };
-        _prevSelected = structuredClone(_selected);
-        _highlighted = setHighlighted();
-        _move = (_typeTanks[tank.type] as ITankType).moves;
+        gameSession!.selected = { row: select!.row, col: select!.col, rotate: tank.rotate };
+        gameSession!.prevSelected = structuredClone(gameSession!.selected);
+        gameSession!.highlighted = setHighlighted(gameSession!);
+        gameSession!.move = (_typeTanks[tank.type] as ITankType).moves;
       }
 
       const user = userService.getByName(enemyPlayer);
 
-      const payload = { board: _board };
+      const payload = { board: gameSession!.board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,
         board: board,
-        highlighted: [..._highlighted],
-        selected: _selected,
+        highlighted: [...gameSession!.highlighted],
+        selected: gameSession!.selected,
       });
     },
   );
@@ -425,7 +499,10 @@ export const gameController = (io: Server, socket: Socket): void => {
     ) => {
       console.log("Server Events.MOVE_FORWARD");
 
-      if (!_selected || _move <= 0) {
+      const idSession = playersGame.get(enemyPlayer);
+      const gameSession = gamesSession.get(idSession!);
+
+      if (!gameSession!.selected || gameSession!.move <= 0) {
         callback({
           success: false,
           board: [],
@@ -437,8 +514,8 @@ export const gameController = (io: Server, socket: Socket): void => {
         return;
       }
 
-      const { row, col } = _selected;
-      const tank = _board[row][col] as ITank;
+      const { row, col } = gameSession!.selected;
+      const tank = gameSession!.board[row][col] as ITank;
       if (!tank) {
         callback({
           success: false,
@@ -454,7 +531,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       let newRow = row + DIRS_ROTATE[tank.rotate as keyof typeof DIRS_ROTATE][0];
       let newCol = col + DIRS_ROTATE[tank.rotate as keyof typeof DIRS_ROTATE][1];
 
-      if (newCol < 0 || newCol >= SIZE) {
+      if (newCol < 0 || newCol >= gameSession!.size) {
         callback({
           success: false,
           board: [],
@@ -467,14 +544,14 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
 
       let win = false;
-      if (checkMoveWin(tank, newRow)) {
+      if (checkMoveWin(tank, newRow, gameSession!.size)) {
         console.log("Kinght escaped");
         win = true;
-        _board[_selected.row][_selected.col] = null;
-        _selected = null;
-        _highlighted = new Set<string>();
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.selected = null;
+        gameSession!.highlighted = new Set<string>();
       } else {
-        if (newRow < 0 || newRow >= SIZE || _board[newRow][newCol]) {
+        if (newRow < 0 || newRow >= gameSession!.size || gameSession!.board[newRow][newCol]) {
           callback({
             success: false,
             board: [],
@@ -486,25 +563,25 @@ export const gameController = (io: Server, socket: Socket): void => {
           return;
         }
 
-        _board[_selected.row][_selected.col] = null;
-        _selected = { row: newRow, col: newCol, rotate: tank.rotate };
-        _board[_selected.row][_selected.col] = tank;
-        _highlighted = setHighlighted();
-        _move -= 1;
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.selected = { row: newRow, col: newCol, rotate: tank.rotate };
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = tank;
+        gameSession!.highlighted = setHighlighted(gameSession!);
+        gameSession!.move -= 1;
       }
 
       const user = userService.getByName(enemyPlayer);
 
-      const payload = { board: _board };
+      const payload = { board: gameSession!.board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,
-        board: _board,
+        board: gameSession!.board,
         win: win,
-        selected: _selected,
-        highlighted: [..._highlighted],
-        move: _move,
+        selected: gameSession!.selected,
+        highlighted: [...gameSession!.highlighted],
+        move: gameSession!.move,
       });
     },
   );
@@ -524,7 +601,10 @@ export const gameController = (io: Server, socket: Socket): void => {
     ) => {
       console.log("Server Events.MOVE_BACK");
 
-      if (!_selected || _move <= 0) {
+      const idSession = playersGame.get(enemyPlayer);
+      const gameSession = gamesSession.get(idSession!);
+
+      if (!gameSession!.selected || gameSession!.move <= 0) {
         callback({
           success: false,
           board: [],
@@ -536,8 +616,8 @@ export const gameController = (io: Server, socket: Socket): void => {
         return;
       }
 
-      const { row, col } = _selected;
-      const tank = _board[row][col] as ITank;
+      const { row, col } = gameSession!.selected;
+      const tank = gameSession!.board[row][col] as ITank;
       if (!tank) {
         callback({
           success: false,
@@ -550,7 +630,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         return;
       }
 
-      if (_move !== (_typeTanks[tank.type] as ITankType).moves) {
+      if (gameSession!.move !== (_typeTanks[tank.type] as ITankType).moves) {
         callback({
           success: false,
           board: [],
@@ -567,7 +647,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       let newRow = row + DIRS_ROTATE[newRotate as keyof typeof DIRS_ROTATE][0];
       let newCol = col + DIRS_ROTATE[newRotate as keyof typeof DIRS_ROTATE][1];
 
-      if (newCol < 0 || newCol >= SIZE) {
+      if (newCol < 0 || newCol >= gameSession!.size) {
         callback({
           success: false,
           board: [],
@@ -580,14 +660,14 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
 
       let win = false;
-      if (checkMoveWin(tank, newRow)) {
+      if (checkMoveWin(tank, newRow, gameSession!.size)) {
         console.log("Kinght escaped");
         win = true;
-        _board[_selected.row][_selected.col] = null;
-        _selected = null;
-        _highlighted = new Set<string>();
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.selected = null;
+        gameSession!.highlighted = new Set<string>();
       } else {
-        if (newRow < 0 || newRow >= SIZE || _board[newRow][newCol]) {
+        if (newRow < 0 || newRow >= gameSession!.size || gameSession!.board[newRow][newCol]) {
           callback({
             success: false,
             board: [],
@@ -599,25 +679,25 @@ export const gameController = (io: Server, socket: Socket): void => {
           return;
         }
 
-        _board[_selected.row][_selected.col] = null;
-        _selected = { row: newRow, col: newCol, rotate: tank.rotate };
-        _board[_selected.row][_selected.col] = tank;
-        _highlighted = setHighlighted();
-        _move = 0;
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.selected = { row: newRow, col: newCol, rotate: tank.rotate };
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = tank;
+        gameSession!.highlighted = setHighlighted(gameSession!);
+        gameSession!.move = 0;
       }
 
       const user = userService.getByName(enemyPlayer);
 
-      const payload = { board: _board };
+      const payload = { board: gameSession!.board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,
-        board: _board,
+        board: gameSession!.board,
         win: win,
-        selected: _selected,
-        highlighted: [..._highlighted],
-        move: _move,
+        selected: gameSession!.selected,
+        highlighted: [...gameSession!.highlighted],
+        move: gameSession!.move,
       });
     },
   );
@@ -637,7 +717,10 @@ export const gameController = (io: Server, socket: Socket): void => {
     ) => {
       console.log("Server Events.TANK_ROTATE");
 
-      if (!_selected || _move <= 0) {
+      const idSession = playersGame.get(enemyPlayer);
+      const gameSession = gamesSession.get(idSession!);
+
+      if (!gameSession!.selected || gameSession!.move <= 0) {
         callback({
           success: false,
           board: [],
@@ -648,8 +731,8 @@ export const gameController = (io: Server, socket: Socket): void => {
         return;
       }
 
-      const { row, col } = _selected;
-      const tank = _board[row][col] as ITank;
+      const { row, col } = gameSession!.selected;
+      const tank = gameSession!.board[row][col] as ITank;
       if (!tank) {
         callback({
           success: false,
@@ -663,29 +746,35 @@ export const gameController = (io: Server, socket: Socket): void => {
 
       tank.rotate = (((tank.rotate + angle * ANGLE) % 360) + 360) % 360;
 
-      _selected.rotate = tank.rotate;
-      _board[row][col] = tank;
-      _highlighted = setHighlighted();
-      _move -= 1;
+      gameSession!.selected.rotate = tank.rotate;
+      gameSession!.board[row][col] = tank;
+      gameSession!.highlighted = setHighlighted(gameSession!);
+      gameSession!.move -= 1;
 
       const user = userService.getByName(enemyPlayer);
 
-      const payload = { board: _board };
+      const payload = { board: gameSession!.board };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
         success: true,
-        board: _board,
-        selected: _selected,
-        highlighted: [..._highlighted],
-        move: _move,
+        board: gameSession!.board,
+        selected: gameSession!.selected,
+        highlighted: [...gameSession!.highlighted],
+        move: gameSession!.move,
       });
     },
   );
 
   //GAME
-  function checkShoot(board: Board, typeTanks: TypeTanksMap, selected: Selected, shoted: Coord) {
-    if (!_highlighted.has(`${shoted!.row},${shoted!.col}`)) {
+  function checkShoot(
+    gameSession: GameSession,
+    board: Board,
+    typeTanks: TypeTanksMap,
+    selected: Selected,
+    shoted: Coord,
+  ) {
+    if (!gameSession.highlighted.has(`${shoted!.row},${shoted!.col}`)) {
       console.log("shot not highligted");
       return false;
     }
@@ -746,12 +835,12 @@ export const gameController = (io: Server, socket: Socket): void => {
     return false;
   }
 
-  function checkEndMove() {
-    if (_selected === null || _prevSelected === null) return false;
+  function checkEndMove(gameSession: GameSession) {
+    if (gameSession!.selected === null || gameSession!.prevSelected === null) return false;
     return (
-      _selected.row !== _prevSelected.row ||
-      _selected.col !== _prevSelected.col ||
-      _selected.rotate !== _prevSelected.rotate
+      gameSession!.selected.row !== gameSession!.prevSelected.row ||
+      gameSession!.selected.col !== gameSession!.prevSelected.col ||
+      gameSession!.selected.rotate !== gameSession!.prevSelected.rotate
     );
   }
 
@@ -770,14 +859,14 @@ export const gameController = (io: Server, socket: Socket): void => {
     return false;
   }
 
-  function checkMoveWin(tank: ITank, newRow: number) {
+  function checkMoveWin(tank: ITank, newRow: number, size: number) {
     let res = false;
     if ((tank.type === "wLTK" || tank.type === "wMTK" || tank.type === "wHTK") && newRow < 0) {
       console.log("white win");
       res = true;
     } else if (
       (tank.type === "bLTK" || tank.type === "bMTK" || tank.type === "bHTK") &&
-      newRow === SIZE
+      newRow === size
     ) {
       console.log("black win");
       res = true;
@@ -794,29 +883,30 @@ export const gameController = (io: Server, socket: Socket): void => {
     [dr, dc]: number[],
     startDist: number,
     endDist: number,
+    size: number,
   ) {
     if (typeShot === "tank") {
       const rs = startRow + dr;
       const cs = startCol + dc;
-      if (rs < 0 || rs >= SIZE || cs < 0 || cs >= SIZE) return;
+      if (rs < 0 || rs >= size || cs < 0 || cs >= size) return;
       if (board?.[rs]?.[cs]) return;
 
       for (let d = startDist; d <= endDist; d++) {
         const r = startRow + dr * d;
         const c = startCol + dc * d;
-        if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) break;
+        if (r < 0 || r >= size || c < 0 || c >= size) break;
         set.add(`${r},${c}`);
         if (board?.[r]?.[c]) break;
       }
     }
   }
 
-  function setHighlighted() {
+  function setHighlighted(gameSession: GameSession) {
     const set = new Set<string>();
-    if (!_selected) return set;
+    if (!gameSession.selected) return set;
 
-    const { row, col } = _selected;
-    const tank = _board?.[row]?.[col] as ITank;
+    const { row, col } = gameSession.selected;
+    const tank = gameSession.board?.[row]?.[col] as ITank;
     if (!tank) return set;
 
     const typeTank = _typeTanks[tank.type] as ITankType;
@@ -833,31 +923,34 @@ export const gameController = (io: Server, socket: Socket): void => {
       if (dir) {
         castRay(
           set,
-          _board,
+          gameSession.board,
           row,
           col,
           typeTank.shot.type,
           dir,
           typeTank.shot.min,
           typeTank.shot.max,
+          gameSession.size,
         );
       }
     }
     return set;
   }
 
-  function addHistory(shoted: Coord = null) {
-    const number = _history.size + 1;
-    const turn = _isWhiteTurn ? "w" : "b";
-    const startCoord = `${letters[_prevSelected!.col]}${_prevSelected!.row + 1}`;
-    const endCoord = `${letters[_selected!.col]}${_selected!.row + 1}`;
-    const rotate = _selected!.rotate;
+  function addHistory(gameSession: GameSession, shoted: Coord = null) {
+    const number = gameSession.history.size + 1;
+    const turn = gameSession.isWhiteTurn ? "w" : "b";
+    const startCoord = `${gameSession.letters[gameSession.prevSelected!.col]}${gameSession.prevSelected!.row + 1}`;
+    const endCoord = `${gameSession.letters[gameSession.selected!.col]}${gameSession.selected!.row + 1}`;
+    const rotate = gameSession.selected!.rotate;
 
     if (shoted) {
-      const enemy = `${letters[shoted!.col]}${shoted!.row + 1}`;
-      _history.add(`${number}-${turn}) ${startCoord} > ${endCoord}/${rotate} (${enemy})`);
+      const enemy = `${gameSession.letters[shoted!.col]}${shoted!.row + 1}`;
+      gameSession.history.add(
+        `${number}-${turn}) ${startCoord} > ${endCoord}/${rotate} (${enemy})`,
+      );
     } else {
-      _history.add(`${number}-${turn}) ${startCoord} > ${endCoord}/${rotate}`);
+      gameSession.history.add(`${number}-${turn}) ${startCoord} > ${endCoord}/${rotate}`);
     }
   }
 };

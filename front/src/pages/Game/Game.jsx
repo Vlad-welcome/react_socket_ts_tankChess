@@ -17,10 +17,6 @@ export const Game = () => {
     game.join((res) => setJoined(res));
   };
 
-  const onBoard = () => {
-    game.room();
-  };
-
   const onInvite = () => {
     game.invite(invitePlayer);
   };
@@ -45,14 +41,6 @@ export const Game = () => {
             Войти
           </Button>
         </InputGroup>
-      </div>
-    );
-  } else if (!game.isRoom) {
-    return (
-      <div className="d-flex justify-content-center mt-3">
-        <Button variant="primary" onClick={onBoard}>
-          Создать комнату
-        </Button>
       </div>
     );
   } else if (game.start) {
@@ -190,9 +178,25 @@ export const Game = () => {
           <Button variant="outline-primary" onClick={onInvite}>
             Пригласить
           </Button>
+
           <Button variant="outline-danger" onClick={onExit}>
             Выйти
           </Button>
+
+          <select
+            className="form-select"
+            value={game.selectedMap ?? ""}
+            onChange={(e) => game.setSelectedMap(e.target.value)}
+          >
+            <option value="" disabled>
+              Выберите...
+            </option>
+            {game.maps.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
         </InputGroup>
       </div>
     );
