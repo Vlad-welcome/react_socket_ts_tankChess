@@ -31,12 +31,13 @@ export function useGame(username) {
         setEnemyPlayer(response.enemyPlayer);
         setTurn(false);
 
-        socket.emit(Events.GAME_START, response.enemyPlayer);
+        socket.emit(Events.GAME_START, response.enemyPlayer, response.map);
         setStart(true);
         setSIZE(response.size);
         setTypeTanks(response.typeTanks);
         setBoard(response.board);
         setHistory(null);
+        setSelectedMap(response.map);
       }
     };
     const onGameStarted = (response) => {
@@ -51,6 +52,7 @@ export function useGame(username) {
       setTypeTanks(response.typeTanks);
       setBoard(response.board);
       setHistory(null);
+      setSelectedMap(response.map);
     };
     const onNextTurned = (response) => {
       console.log("turned");

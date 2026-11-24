@@ -285,6 +285,7 @@ export const gameController = (io: Server, socket: Socket): void => {
           board: gameSession.board,
           typeTanks: _typeTanks,
           size: gameSession.size,
+          map: map,
         };
         io.to(user.socketId).emit(Events.INVITED, payload);
 
@@ -296,7 +297,7 @@ export const gameController = (io: Server, socket: Socket): void => {
     },
   );
 
-  socket.on(Events.GAME_START, (enemyPlayer: string) => {
+  socket.on(Events.GAME_START, (enemyPlayer: string, map: string) => {
     console.log("Server Events.GAME_START");
 
     const user = userService.getByName(enemyPlayer);
@@ -311,6 +312,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         board: gameSession!.board,
         typeTanks: _typeTanks,
         size: gameSession!.size,
+        map: map,
       };
       io.to(user.socketId).emit(Events.GAME_STARTED, payload);
     }
