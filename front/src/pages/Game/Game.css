@@ -1,3 +1,11 @@
+@media (hover: none) {
+  .btn {
+    --bs-btn-hover-color: var(--bs-btn-color);
+    --bs-btn-hover-bg: var(--bs-btn-bg);
+    --bs-btn-hover-border-color: var(--bs-btn-border-color);
+  }
+}
+
 .board-wrapper {
   --label-size: min(3vmin, 22px);
 
@@ -55,16 +63,28 @@
 
 /* подсветка выбранной клетки */
 .cell.selected {
-  outline: 2px solid #ff4646;
-  outline-offset: -2px;
+  outline: 1px solid #ff4646;
+  outline-offset: -1px;
   z-index: 1;
+}
+@media (min-width: 768px) {
+  .cell.selected {
+    outline: 2px solid #ff4646;
+    outline-offset: -2px;
+  }
 }
 
 /* подсветка союзной техники */
 .cell.ally {
-  outline: 2px solid #46ff5f;
-  outline-offset: -2px;
+  outline: 1px solid #46ff5f;
+  outline-offset: -1px;
   z-index: 1;
+}
+@media (min-width: 768px) {
+  .cell.ally {
+    outline: 2px solid #46ff5f;
+    outline-offset: -2px;
+  }
 }
 
 .overlay-img {
@@ -72,7 +92,12 @@
   top: 50%;
   left: 50%;
   translate: -50% -50%;
-  width: min(7vmin, var(--img-size, 72px)); 
+  width: calc(var(--img-size) * 0.48);
+}
+@media (min-width: 768px) {
+  .overlay-img {
+    width: var(--img-size); 
+  }
 }
 
 .cell.highlight::after {
@@ -91,22 +116,70 @@
   50%      { transform: scale(1.1); opacity: 1;  }
 }
 
+/* ───── контейнер ───── */
 .history-list {
-  max-height: 3lh;         /* мобильный: 3 строки */
+  max-height: 4.5lh;
   overflow-y: auto;
   overflow-x: hidden;
+
+  /* визуал */
+  padding: 4px 8px;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #1f2937;
+
+  /* плавная прокрутка (для scrollTo) */
+  scroll-behavior: smooth;
 }
 
-/* планшет и выше — 10 строк */
 @media (min-width: 768px) {
   .history-list {
-    max-height: 10lh;
+    max-height: 13.25lh;
+    font-size: 15px;
   }
 }
 
+/* ───── строка ───── */
 .history-item {
-  line-height: 1.4;      /* должно совпадать с 1lh выше */
-  white-space: nowrap;   /* одна запись — одна строка */
+  line-height: 1.4;
+  padding: 4px 6px;
+  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis; /* длинная запись → «...» */
+  text-overflow: ellipsis;
+  border-radius: 4px;
+
+  /* зебра — чередование фона */
+  transition: background 0.15s;
+}
+
+.history-item:nth-child(odd) {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.history-item:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* последняя запись — акцент */
+.history-item:last-child {
+  color: #ff6b09;
+  font-weight: 600;
+}
+
+/* ───── тонкий скроллбар (webkit) ───── */
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+.history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.history-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
 }

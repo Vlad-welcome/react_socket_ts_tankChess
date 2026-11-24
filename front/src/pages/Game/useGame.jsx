@@ -111,7 +111,15 @@ export function useGame(username) {
     socket?.disconnect();
     console.log("join", username);
 
-    const s = io(import.meta.env.VITE_FRONT_API, {
+    let api = "";
+    if (import.meta.env.PROD) {
+      console.log("prod");
+      api = import.meta.env.VITE_FRONT_API_PROD;
+    } else {
+      console.log("dev");
+      api = import.meta.env.VITE_FRONT_API;
+    }
+    const s = io(api, {
       autoConnect: false,
       withCredentials: true,
       auth: { username: username },
@@ -160,6 +168,7 @@ export function useGame(username) {
   };
 
   const nextTurn = () => {
+    if (!turn) return;
     console.log("nextTurn");
 
     socket.emit(Events.NEXT_TURN, enemyPlayer, (response) => {
@@ -187,10 +196,13 @@ export function useGame(username) {
     setEnemyPlayer(-1);
 
     setSelected(false);
+    setTurn(false);
   };
 
   const shot = (shoted) => {
+    if (!turn) return;
     console.log("shot");
+
     socket.emit(Events.SHOT, enemyPlayer, shoted, async (response) => {
       if (response.success) {
         setTurn(false);
@@ -235,8 +247,8 @@ export function useGame(username) {
 
   //Поворот на 45
   const rotateSelectedLeft = useCallback(async () => {
+    if (!turn) return;
     if (!selected || move <= 0) return;
-
     console.log("rotateSelected");
 
     socket.emit(Events.TANK_ROTATE, enemyPlayer, -1, (response) => {
@@ -250,6 +262,7 @@ export function useGame(username) {
   }, [selected, board, move]);
 
   const rotateSelectedRight = useCallback(async () => {
+    if (!turn) return;
     if (!selected || move <= 0) return;
 
     console.log("rotateSelected");
@@ -266,8 +279,8 @@ export function useGame(username) {
 
   // передний ход
   const moveSelected = useCallback(async () => {
+    if (!turn) return;
     if (!selected || move <= 0) return;
-
     console.log("moveSelected");
 
     socket.emit(Events.MOVE_FORWARD, enemyPlayer, async (response) => {
@@ -289,6 +302,7 @@ export function useGame(username) {
 
   // задний ход
   const moveBackSelected = useCallback(async () => {
+    if (!turn) return;
     if (!selected || move <= 0) return;
 
     console.log("moveBackSelected");
@@ -313,6 +327,7 @@ export function useGame(username) {
   // A / D / W / S
   useEffect(() => {
     if (!selected) return;
+    if (!turn) return;
 
     const onKeyDown = (e) => {
       if (e.code === "KeyA" || e.code === "ArrowLeft") {
@@ -413,7 +428,7 @@ export function useGame(username) {
               draggable={false}
               style={{
                 transform: `rotate(${tank?.rotate || 0}deg)`,
-                "--img-size": SIZE === 16 ? "52px" : "72px",
+                "--img-size": SIZE === 12 ? "7.1vh" : SIZE === 16 ? "5.4vh" : "4.4vh",
               }}
             />
           )}
