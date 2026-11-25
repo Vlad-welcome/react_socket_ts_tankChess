@@ -26,6 +26,11 @@ export function useGame(username) {
       console.log(`invited: ${response.enemyPlayer}`);
       const ok = await ConfirmFunc(`Вас приглашает в игру: ${response.enemyPlayer}. Принять?`);
       if (ok) {
+        const urls = Object.values(response.typeTanks)
+          .map((t) => t.img)
+          .filter(Boolean);
+        await preloadImages(urls);
+
         document.title = "Ожидайте";
         setPlayer(2);
         setEnemyPlayer(response.enemyPlayer);
@@ -40,7 +45,12 @@ export function useGame(username) {
         setSelectedMap(response.map);
       }
     };
-    const onGameStarted = (response) => {
+    const onGameStarted = async (response) => {
+      const urls = Object.values(response.typeTanks)
+        .map((t) => t.img)
+        .filter(Boolean);
+      await preloadImages(urls);
+
       document.title = "Ходите";
       setPlayer(1);
       setTurn(true);
@@ -115,10 +125,8 @@ export function useGame(username) {
 
     let api = "";
     if (import.meta.env.PROD) {
-      console.log("prod");
       api = import.meta.env.VITE_FRONT_API_PROD;
     } else {
-      console.log("dev");
       api = import.meta.env.VITE_FRONT_API;
     }
     const s = io(api, {
@@ -199,6 +207,8 @@ export function useGame(username) {
 
     setSelected(false);
     setTurn(false);
+    setHighlighted(new Set());
+    setBoard(null);
   };
 
   const shot = (shoted) => {
@@ -393,6 +403,20 @@ export function useGame(username) {
     }
   };
 
+  function preloadImages(urls) {
+    return Promise.all(
+      urls.map(
+        (url) =>
+          new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = url;
+          }),
+      ),
+    );
+  }
+
   const cells = [];
   for (let row = 0; row < SIZE; row++) {
     for (let col = 0; col < SIZE; col++) {
@@ -400,7 +424,10 @@ export function useGame(username) {
       const tank = board?.[row]?.[col] ?? null;
       const isSelected = selected && selected.row === row && selected.col === col;
       const isHighlighted = highlighted?.has(`${row},${col}`);
-      const isAlly = tank?.player === player;
+      const isAlly = tank?.player === player && tank?.isAlive;
+      const isDeadAlly = tank && tank?.type !== "wall" && !tank?.isAlive && tank?.player === player;
+      const isDeadEnemy =
+        tank && tank?.type !== "wall" && !tank?.isAlive && tank?.player !== player;
 
       cells.push(
         <div
@@ -411,6 +438,8 @@ export function useGame(username) {
             isSelected && "selected",
             isHighlighted && "highlight",
             isAlly && !isSelected && turn && "ally",
+            isDeadAlly && "deadAlly",
+            isDeadEnemy && "deadEnemy",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -422,15 +451,17 @@ export function useGame(username) {
             handleCellRightClick(row, col);
           }}
         >
-          {tank && (
+          {tank && typeTanks?.[tank.type]?.img && (
             <img
               src={typeTanks[tank.type].img}
               alt=""
               className="overlay-img"
               draggable={false}
+              loading="eager"
               style={{
                 transform: `rotate(${tank?.rotate || 0}deg)`,
-                "--img-size": SIZE === 12 ? "7.1vh" : SIZE === 16 ? "5.4vh" : "4.4vh",
+                "--img-size":
+                  SIZE === 12 ? "7.1vh" : SIZE === 16 ? "5.4vh" : SIZE === 20 ? "4.4vh" : "3.6vh",
               }}
             />
           )}

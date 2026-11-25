@@ -22,9 +22,11 @@ export interface ITankType {
   shot: ITankShot;
   damage: number;
   moves: number;
+  isPush: boolean;
 }
 export interface IWallType {
   img: string;
+  isPush: boolean;
 }
 export type TankType = ITankType | IWallType;
 export type TypeTanksMap = Record<string, TankType>;
@@ -33,6 +35,7 @@ export interface ITank {
   type: string;
   rotate: number;
   player: number;
+  isAlive: boolean;
 }
 export interface IWall {
   type: string;

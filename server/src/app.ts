@@ -11,23 +11,26 @@ import { fileURLToPath } from "node:url";
 
 const app: Application = express();
 
-app.use( logger( "dev" ) );
-app.use( express.json() );
-app.use( express.urlencoded( { extended: true } ) );
-app.use( cookieParser() );
+app.use(logger("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-app.use( errorHandler );
+app.use(errorHandler);
 
 let staticDir: string;
-if ( isSea() )
-{
-  staticDir = path.join( __dirname, "front", "dist" );
-} else
-{
-  const __dirname = path.dirname( fileURLToPath( import.meta.url ) );
-  staticDir = path.join( __dirname, "..", "..", "front", "dist" );
+if (isSea()) {
+  staticDir = path.join(__dirname, "front", "dist");
+} else {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  staticDir = path.join(__dirname, "..", "..", "front", "dist");
 }
-app.use( express.static( staticDir ) );
+app.use(
+  express.static(staticDir, {
+    maxAge: "7d",
+    immutable: true,
+  }),
+);
 
 // app.use((req, res, next) => {
 //   if (req.path.startsWith("/api")) {
