@@ -7,6 +7,7 @@ import { io } from "socket.io-client";
 
 export function useGame(username) {
   const [connected, setConnected] = useState(false);
+  const [isContinue, setIsContinue] = useState(false);
   const [enemyPlayer, setEnemyPlayer] = useState(-1);
   const [start, setStart] = useState(false);
   const [socket, setSocket] = useState(null);
@@ -24,24 +25,27 @@ export function useGame(username) {
     };
     const onInvited = async (response) => {
       console.log(`invited: ${response.enemyPlayer}`);
-      const ok = await ConfirmFunc(`Вас приглашает в игру: ${response.enemyPlayer}. Принять?`);
+      const text = response.text
+        ? response.text
+        : `Вас приглашает в игру: ${response.enemyPlayer}. Принять?`;
+      const ok = await ConfirmFunc(text);
       if (ok) {
         const urls = Object.values(response.typeTanks)
           .map((t) => t.img)
           .filter(Boolean);
         await preloadImages(urls);
 
-        document.title = "Ожидайте";
-        setPlayer(2);
+        document.title = response.turn ? "Ходите" : "Ожидайте";
+        setPlayer(response.player);
         setEnemyPlayer(response.enemyPlayer);
-        setTurn(false);
+        setTurn(response.turn);
 
         socket.emit(Events.GAME_START, response.enemyPlayer, response.map);
         setStart(true);
         setSIZE(response.size);
         setTypeTanks(response.typeTanks);
         setBoard(response.board);
-        setHistory(null);
+        setHistory(response.history);
         setSelectedMap(response.map);
       }
     };
@@ -51,9 +55,9 @@ export function useGame(username) {
         .filter(Boolean);
       await preloadImages(urls);
 
-      document.title = "Ходите";
-      setPlayer(1);
-      setTurn(true);
+      document.title = response.turn ? "Ходите" : "Ожидайте";
+      setPlayer(response.player);
+      setTurn(response.turn);
 
       console.log(`started: ${response.enemyPlayer}`);
       setStart(true);
@@ -61,15 +65,15 @@ export function useGame(username) {
       setSIZE(response.size);
       setTypeTanks(response.typeTanks);
       setBoard(response.board);
-      setHistory(null);
+      setHistory(response.history);
       setSelectedMap(response.map);
     };
     const onNextTurned = (response) => {
       console.log("turned");
-      setTurn(true);
+      setTurn(response.turn);
       setBoard(response.board);
       setHistory(response.history);
-      document.title = "Ходите";
+      document.title = response.turn ? "Ходите" : "Ожидайте";
     };
     const onExited = async (response) => {
       if (response.text) {
@@ -83,7 +87,7 @@ export function useGame(username) {
       setTurn(!response.win);
       setBoard(response.board);
       setHistory(response.history);
-      document.title = "Ходите";
+      document.title = !response.win ? "Ходите" : "Ожидайте";
 
       if (response.win) {
         console.log("defeated");
@@ -145,6 +149,8 @@ export function useGame(username) {
           onResult(true);
           setMaps(response.maps);
           setSelectedMap(response?.maps?.length > 0 ? response?.maps[0] : null);
+          setIsContinue(response.isContinue);
+          console.log(response.isContinue);
         } else {
           s.disconnect();
           onResult(false);
@@ -183,17 +189,29 @@ export function useGame(username) {
 
     socket.emit(Events.NEXT_TURN, enemyPlayer, (response) => {
       if (!response.success) {
-        setTurn(true);
-        document.title = "Ходите";
+        setTurn(!response.success);
+        document.title = !response.success ? "Ходите" : "Ожидайте";
       } else {
-        document.title = "Ожидайте";
+        document.title = !response.success ? "Ходите" : "Ожидайте";
         setHistory(response.history);
-        setTurn(false);
+        setTurn(!response.success);
         setSelected(null);
         setHighlighted(null);
         setMove("-");
         setArmor("-");
         setDamage("-");
+      }
+    });
+  };
+
+  const continueGame = () => {
+    console.log("continueGame");
+
+    socket.emit(Events.CONTINUE_GAME, async (response) => {
+      if (!response.success) {
+        await ConfirmFunc("Пользователь не в сети", "Ок", false);
+      } else {
+        await ConfirmFunc("Ожидайте ответа", "Ок", false);
       }
     });
   };
@@ -209,6 +227,7 @@ export function useGame(username) {
     setTurn(false);
     setHighlighted(new Set());
     setBoard(null);
+    setIsContinue(false);
   };
 
   const shot = (shoted) => {
@@ -217,8 +236,8 @@ export function useGame(username) {
 
     socket.emit(Events.SHOT, enemyPlayer, shoted, async (response) => {
       if (response.success) {
-        setTurn(false);
-        document.title = "Ожидайте";
+        setTurn(response.turn);
+        document.title = response.turn ? "Ходите" : "Ожидайте";
 
         setBoard(response.board);
         setHistory(response.history);
@@ -368,7 +387,11 @@ export function useGame(username) {
   const handleCellClick = (row, col) => {
     if (turn) {
       console.log("LEFT_CLICK");
-      if (selected && board[row][col]?.player !== player && highlighted.has(`${row},${col}`)) {
+      if (
+        selected &&
+        board[row][col]?.object?.player !== player &&
+        highlighted.has(`${row},${col}`)
+      ) {
         shot({ row, col });
       } else {
         socket.emit(Events.LEFT_CLICK, { row, col }, player, enemyPlayer, (response) => {
@@ -382,9 +405,9 @@ export function useGame(username) {
               setArmor("-");
               setDamage("-");
             } else {
-              const t = board[row][col];
+              const t = board[row][col].object;
 
-              setMove(typeTanks[t.type].moves);
+              setMove(response.move);
               setArmor(typeTanks[t.type].armor);
               setDamage(typeTanks[t.type].damage);
             }
@@ -421,13 +444,15 @@ export function useGame(username) {
   for (let row = 0; row < SIZE; row++) {
     for (let col = 0; col < SIZE; col++) {
       const isLight = (row + col) % 2 === 0;
-      const tank = board?.[row]?.[col] ?? null;
+      const object = board?.[row]?.[col]?.object ?? null;
       const isSelected = selected && selected.row === row && selected.col === col;
       const isHighlighted = highlighted?.has(`${row},${col}`);
-      const isAlly = tank?.player === player && tank?.isAlive;
-      const isDeadAlly = tank && tank?.type !== "wall" && !tank?.isAlive && tank?.player === player;
+      const isAlly = object?.player === player && object?.isAlive;
+      const isDeadAlly =
+        object && object?.rotate >= 0 && !object?.isAlive && object?.player === player;
       const isDeadEnemy =
-        tank && tank?.type !== "wall" && !tank?.isAlive && tank?.player !== player;
+        object && object?.rotate >= 0 && !object?.isAlive && object?.player !== player;
+      const effect = board?.[row]?.[col]?.effect ?? null;
 
       cells.push(
         <div
@@ -451,15 +476,29 @@ export function useGame(username) {
             handleCellRightClick(row, col);
           }}
         >
-          {tank && typeTanks?.[tank.type]?.img && (
+          {object && typeTanks?.[object.type]?.img && (
             <img
-              src={typeTanks[tank.type].img}
+              src={typeTanks[object.type].img}
               alt=""
               className="overlay-img"
               draggable={false}
               loading="eager"
               style={{
-                transform: `rotate(${tank?.rotate || 0}deg)`,
+                transform: `rotate(${object?.rotate || 0}deg)`,
+                "--img-size":
+                  SIZE === 12 ? "7.1vh" : SIZE === 16 ? "5.4vh" : SIZE === 20 ? "4.4vh" : "3.6vh",
+              }}
+            />
+          )}
+
+          {effect && typeTanks?.[effect.type]?.img && (
+            <img
+              src={typeTanks[effect.type].img}
+              alt=""
+              className="overlay-img effect"
+              draggable={false}
+              loading="eager"
+              style={{
                 "--img-size":
                   SIZE === 12 ? "7.1vh" : SIZE === 16 ? "5.4vh" : SIZE === 20 ? "4.4vh" : "3.6vh",
               }}
@@ -491,5 +530,7 @@ export function useGame(username) {
     maps,
     setSelectedMap,
     selectedMap,
+    isContinue,
+    continueGame,
   };
 }

@@ -63,27 +63,37 @@
 
 /* подсветка выбранной клетки */
 .cell.selected {
-  outline: 1px solid #ff4646;
-  outline-offset: -1px;
-  z-index: 1;
+  z-index: 2;
+}
+.cell.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 1px #ff4646; 
+  pointer-events: none;               
+  z-index: 2;                         
 }
 @media (min-width: 768px) {
-  .cell.selected {
-    outline: 2px solid #ff4646;
-    outline-offset: -2px;
+  .cell.selected::after {
+    box-shadow: inset 0 0 0 2px #ff4646;
   }
 }
 
 /* подсветка союзной техники */
 .cell.ally {
-  outline: 1px solid #46ff5f;
-  outline-offset: -1px;
-  z-index: 1;
+  z-index: 2;
+}
+.cell.ally::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 1px #46ff5f;
+  pointer-events: none;
+  z-index: 2;
 }
 @media (min-width: 768px) {
-  .cell.ally {
-    outline: 2px solid #46ff5f;
-    outline-offset: -2px;
+  .cell.ally::after {
+    box-shadow: inset 0 0 0 2px #46ff5f;
   }
 }
 
@@ -93,6 +103,10 @@
   left: 50%;
   translate: -50% -50%;
   width: calc(var(--img-size) * 0.49);
+  z-index: 1;
+}
+.overlay-img.effect{
+  z-index: 0;
 }
 @media (min-width: 768px) {
   .overlay-img {
@@ -101,7 +115,7 @@
 }
 
 .cell.highlight::after {
-  z-index: 0;
+  z-index: 2;
   content: "";
   position: absolute;            
   inset: 25%;                 /* круг чуть меньше клетки */
@@ -192,7 +206,7 @@
   aspect-ratio: 1 / 1;
   background: #278b1e;
   pointer-events: none;
-  z-index: 1;
+  z-index: 3;
 }
 
 .cell.deadEnemy::after {
@@ -203,5 +217,5 @@
   aspect-ratio: 1 / 1;
   background: #8b581e;
   pointer-events: none;
-  z-index: 1;
+  z-index: 3;
 }

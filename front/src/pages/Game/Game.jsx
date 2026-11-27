@@ -233,6 +233,16 @@ export const Game = () => {
               ))}
             </select>
           </div>
+
+          <div className="d-flex mt-2 justify-content-end">
+            <Button
+              variant="outline-success"
+              onClick={game.continueGame}
+              disabled={!game.isContinue}
+            >
+              Продолжить
+            </Button>
+          </div>
         </div>
       </div>
     );

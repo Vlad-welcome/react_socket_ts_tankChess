@@ -7,6 +7,8 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
+import { playersGame } from "./gameController.js";
+
 export const userController = (io: Server, socket: Socket): void => {
   console.log("Server connection");
 
@@ -31,16 +33,19 @@ export const userController = (io: Server, socket: Socket): void => {
 
   socket.on(
     Events.JOIN,
-    (username: unknown, callback: (res: { success: boolean; maps: string[] }) => void) => {
+    (
+      username: unknown,
+      callback: (res: { success: boolean; maps: string[]; isContinue: boolean }) => void,
+    ) => {
       console.log("Server Events.JOIN");
       if (typeof username !== "string") {
-        callback({ success: false, maps: [] });
+        callback({ success: false, maps: [], isContinue: false });
         return;
       }
 
       const name = username.trim();
       if (!name) {
-        callback({ success: false, maps: [] });
+        callback({ success: false, maps: [], isContinue: false });
         return;
       }
 
@@ -65,7 +70,12 @@ export const userController = (io: Server, socket: Socket): void => {
         .filter((file) => file.endsWith(".txt") && !file.startsWith("_"))
         .map((file) => file.replace(/\.txt$/, ""));
 
-      callback({ success: true, maps: maps });
+      let game = false;
+      if (playersGame.get(name)) {
+        game = true;
+      }
+
+      callback({ success: true, maps: maps, isContinue: game });
     },
   );
 };

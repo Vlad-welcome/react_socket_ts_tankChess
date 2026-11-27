@@ -19,6 +19,7 @@ export const Events = {
   MOVE_FORWARD: "tank:move_forward",
   MOVE_BACK: "tank:move_back",
   TANK_ROTATE: "tank:rotate",
+  CONTINUE_GAME: "game:continue",
 } as const;
 
 // Тип конкретного значения: "game:invited" | "game:started" | ...

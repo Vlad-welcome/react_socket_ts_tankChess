@@ -23,10 +23,15 @@ export interface ITankType {
   damage: number;
   moves: number;
   isPush: boolean;
+  isShotThrough: boolean;
+  isMoveWater: boolean;
+  isCutTree: boolean;
+  isClearMine: boolean;
 }
 export interface IWallType {
   img: string;
   isPush: boolean;
+  isShotThrough: boolean;
 }
 export type TankType = ITankType | IWallType;
 export type TypeTanksMap = Record<string, TankType>;
@@ -40,7 +45,11 @@ export interface ITank {
 export interface IWall {
   type: string;
 }
-export type Cell = ITank | IWall | null;
+export interface ICell {
+  object: ITank | IWall | null;
+  effect: IWall | null;
+}
+export type Cell = ICell;
 export type Board = Cell[][];
 
 export interface ICoord {
@@ -65,5 +74,8 @@ export interface IGameSession {
   highlighted: Set<string>;
   history: Set<string>;
   letters: string[];
+  map: string;
+  whitePlayer: string;
+  blackPlayer: string;
 }
 export type GameSession = IGameSession;

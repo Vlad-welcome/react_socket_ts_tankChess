@@ -11,6 +11,7 @@ import type {
   Cell,
   Selected,
   GameSession,
+  IWallType,
 } from "../interfaces/interfaces.js";
 
 import fs from "fs";
@@ -39,47 +40,84 @@ const DIRS_ROTATE = {
   315: [-1, -1],
 };
 const objects: Record<string, Cell> = {
-  wall: { type: "wall" },
-  wLTK: { type: "wLTK", player: 1, rotate: 0, isAlive: true },
-  wMTK: { type: "wMTK", player: 1, rotate: 0, isAlive: true },
-  wHTK: { type: "wHTK", player: 1, rotate: 0, isAlive: true },
-  wRTK: { type: "wRTK", player: 1, rotate: 0, isAlive: true },
-  wLT: { type: "wLT", player: 1, rotate: 0, isAlive: true },
-  wMT: { type: "wMT", player: 1, rotate: 0, isAlive: true },
-  wHT: { type: "wHT", player: 1, rotate: 0, isAlive: true },
-  wTD: { type: "wTD", player: 1, rotate: 0, isAlive: true },
-  wHM: { type: "wHM", player: 1, rotate: 0, isAlive: true },
-  wRT: { type: "wRT", player: 1, rotate: 0, isAlive: true },
-  wHB: { type: "wHB", player: 1, rotate: 0, isAlive: true },
-  wST: { type: "wST", player: 1, rotate: 0, isAlive: true },
-  wLH: { type: "wLH", player: 1, rotate: 0, isAlive: true },
-  bLTK: { type: "bLTK", player: 2, rotate: 180, isAlive: true },
-  bMTK: { type: "bMTK", player: 2, rotate: 180, isAlive: true },
-  bHTK: { type: "bHTK", player: 2, rotate: 180, isAlive: true },
-  bRTK: { type: "bRTK", player: 2, rotate: 180, isAlive: true },
-  bLT: { type: "bLT", player: 2, rotate: 180, isAlive: true },
-  bMT: { type: "bMT", player: 2, rotate: 180, isAlive: true },
-  bHT: { type: "bHT", player: 2, rotate: 180, isAlive: true },
-  bTD: { type: "bTD", player: 2, rotate: 180, isAlive: true },
-  bHM: { type: "bHM", player: 2, rotate: 180, isAlive: true },
-  bRT: { type: "bRT", player: 2, rotate: 180, isAlive: true },
-  bHB: { type: "bHB", player: 2, rotate: 180, isAlive: true },
-  bST: { type: "bST", player: 2, rotate: 180, isAlive: true },
-  bLH: { type: "bLH", player: 2, rotate: 180, isAlive: true },
+  mud: { object: null, effect: { type: "mud" } },
+  hedg: { object: null, effect: { type: "hedg" } },
+  wate: { object: null, effect: { type: "wate" } },
+  mine: { object: null, effect: { type: "mine" } },
+  tree: { object: { type: "tree" }, effect: null },
+  lwal: { object: { type: "lwal" }, effect: null },
+  wall: { object: { type: "wall" }, effect: null },
+  wLTK: { object: { type: "wLTK", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wMTK: { object: { type: "wMTK", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wHTK: { object: { type: "wHTK", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wRTK: { object: { type: "wRTK", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wLT: { object: { type: "wLT", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wMT: { object: { type: "wMT", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wHT: { object: { type: "wHT", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wTD: { object: { type: "wTD", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wHM: { object: { type: "wHM", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wRT: { object: { type: "wRT", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wHB: { object: { type: "wHB", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wST: { object: { type: "wST", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wLH: { object: { type: "wLH", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bLTK: { object: { type: "bLTK", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bMTK: { object: { type: "bMTK", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bHTK: { object: { type: "bHTK", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bRTK: { object: { type: "bRTK", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bLT: { object: { type: "bLT", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bMT: { object: { type: "bMT", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bHT: { object: { type: "bHT", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bTD: { object: { type: "bTD", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bHM: { object: { type: "bHM", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bRT: { object: { type: "bRT", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bHB: { object: { type: "bHB", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bST: { object: { type: "bST", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bLH: { object: { type: "bLH", player: 2, rotate: 180, isAlive: true }, effect: null },
 };
 
 let _typeTanks: TypeTanksMap;
 const ANGLE = 45;
 
 const gamesSession = new Map<string, GameSession>();
-const playersGame = new Map<string, string>();
+export const playersGame = new Map<string, string>();
 
 function initTypeTanksMap(SIZE: number) {
   let typeTanks: TypeTanksMap = {
     //block
+    mud: {
+      img: "/sprites/mud.png",
+      isPush: false,
+      isShotThrough: true,
+    },
+    hedg: {
+      img: "/sprites/hedg.png",
+      isPush: false,
+      isShotThrough: false,
+    },
+    wate: {
+      img: "/sprites/wate.png",
+      isPush: false,
+      isShotThrough: true,
+    },
+    mine: {
+      img: "/sprites/mine.png",
+      isPush: false,
+      isShotThrough: true,
+    },
+    tree: {
+      img: "/sprites/tree.png",
+      isPush: false,
+      isShotThrough: false,
+    },
+    lwal: {
+      img: "/sprites/lwal.png",
+      isPush: false,
+      isShotThrough: true,
+    },
     wall: {
       img: "/sprites/wall.png",
       isPush: false,
+      isShotThrough: false,
     },
     //white
     wLTK: {
@@ -89,6 +127,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 5,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wMTK: {
       img: "/sprites/wMTK.png",
@@ -97,6 +139,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 2,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wHTK: {
       img: "/sprites/wHTK.png",
@@ -105,6 +151,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     wRTK: {
       img: "/sprites/wRTK.png",
@@ -113,6 +163,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 6,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wLT: {
       img: "/sprites/wLT.png",
@@ -121,6 +175,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 5,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wMT: {
       img: "/sprites/wMT.png",
@@ -129,6 +187,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 2,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wHT: {
       img: "/sprites/wHT.png",
@@ -137,6 +199,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     wTD: {
       img: "/sprites/wTD.png",
@@ -145,6 +211,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 4,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wHM: {
       img: "/sprites/wHM.png",
@@ -153,6 +223,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 5,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wRT: {
       img: "/sprites/wRT.png",
@@ -161,6 +235,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 6,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     wHB: {
       img: "/sprites/wHB.png",
@@ -169,6 +247,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     wST: {
       img: "/sprites/wST.png",
@@ -177,6 +259,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 4,
       moves: 2,
       isPush: false,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     wLH: {
       img: "/sprites/wLH.png",
@@ -185,6 +271,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     //Black
     bLTK: {
@@ -194,6 +284,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 5,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bMTK: {
       img: "/sprites/bMTK.png",
@@ -202,6 +296,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 2,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bHTK: {
       img: "/sprites/bHTK.png",
@@ -210,6 +308,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     bRTK: {
       img: "/sprites/bRTK.png",
@@ -218,6 +320,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 6,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bLT: {
       img: "/sprites/bLT.png",
@@ -226,6 +332,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 5,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bMT: {
       img: "/sprites/bMT.png",
@@ -234,6 +344,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 2,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bHT: {
       img: "/sprites/bHT.png",
@@ -242,6 +356,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     bTD: {
       img: "/sprites/bTD.png",
@@ -250,6 +368,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 4,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bHM: {
       img: "/sprites/bHM.png",
@@ -258,6 +380,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 5,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bRT: {
       img: "/sprites/bRT.png",
@@ -266,6 +392,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 1,
       moves: 6,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
     bHB: {
       img: "/sprites/bHB.png",
@@ -274,6 +404,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 3,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     bST: {
       img: "/sprites/bST.png",
@@ -282,6 +416,10 @@ function initTypeTanksMap(SIZE: number) {
       damage: 4,
       moves: 2,
       isPush: false,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: true,
+      isClearMine: false,
     },
     bLH: {
       img: "/sprites/bLH.png",
@@ -290,11 +428,16 @@ function initTypeTanksMap(SIZE: number) {
       damage: 3,
       moves: 4,
       isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
     },
   };
   return typeTanks;
 }
 function initBoard(map: string, gameSession: GameSession) {
+  gameSession.map = map;
   gameSession.history = new Set();
 
   let pathMap: string;
@@ -307,14 +450,16 @@ function initBoard(map: string, gameSession: GameSession) {
 
   const board = JSON.parse(fs.readFileSync(pathMap, "utf-8"));
   let boardLength = board.length;
-  gameSession.board = Array.from({ length: boardLength }, () => Array(boardLength).fill(null));
+  gameSession.board = Array.from({ length: boardLength }, () =>
+    Array.from({ length: boardLength }, () => ({ object: null, effect: null }) as Cell),
+  );
 
   for (let i = 0; i < boardLength; i++) {
     for (let j = 0; j < boardLength; j++) {
       const cell: string = board[i][j].trim();
 
       if (cell) {
-        gameSession.board[i][j] = { ...objects[cell] } as Cell;
+        gameSession.board[i][j] = structuredClone(objects[cell]);
       }
     }
   }
@@ -361,6 +506,9 @@ export const gameController = (io: Server, socket: Socket): void => {
           history: new Set(),
           highlighted: new Set(),
           isWhiteTurn: true,
+          map: "",
+          whitePlayer: curUser.username,
+          blackPlayer: user.username,
         };
         initBoard(map, gameSession);
 
@@ -392,6 +540,13 @@ export const gameController = (io: Server, socket: Socket): void => {
         console.log(`playersGame ${playersGame.size}`);
         console.log(`gamesSession ${gamesSession.size}`);
 
+        let player;
+        if (gameSession.whitePlayer === user.username) {
+          player = 1;
+        }
+        if (gameSession.blackPlayer === user.username) {
+          player = 2;
+        }
         // Пуш приглашённому игроку
         const payload = {
           enemyPlayer: curUser.username,
@@ -399,6 +554,10 @@ export const gameController = (io: Server, socket: Socket): void => {
           typeTanks: _typeTanks,
           size: gameSession.size,
           map: map,
+          player: player,
+          turn:
+            (gameSession.isWhiteTurn && player === 1) || (!gameSession.isWhiteTurn && player !== 1),
+          history: gameSession?.history ? [...gameSession.history] : null,
         };
         io.to(user.socketId).emit(Events.INVITED, payload);
 
@@ -410,6 +569,50 @@ export const gameController = (io: Server, socket: Socket): void => {
     },
   );
 
+  socket.on(Events.CONTINUE_GAME, (callback: (res: { success: boolean }) => void) => {
+    console.log("Server Events.CONTINUE_GAME");
+
+    const curUser = userService.getBySocket(socket.id);
+    const game = playersGame.get(curUser!.username);
+    const enemyName = game?.split(",").filter((p) => p != curUser?.username)[0];
+    const user = userService.getByName(enemyName!);
+
+    if (user && curUser) {
+      const gameSession = gamesSession.get(game!);
+
+      console.log(`playersGame ${playersGame.size}`);
+      console.log(`gamesSession ${gamesSession.size}`);
+
+      let player;
+      if (gameSession!.whitePlayer === user.username) {
+        player = 1;
+      }
+      if (gameSession!.blackPlayer === user.username) {
+        player = 2;
+      }
+
+      // Пуш приглашённому игроку
+      const payload = {
+        text: `Вас приглашает продолжить игру: ${curUser.username}. Принять?`,
+        enemyPlayer: curUser.username,
+        board: gameSession!.board,
+        typeTanks: _typeTanks,
+        size: gameSession!.size,
+        map: gameSession!.map,
+        player: player,
+        turn:
+          (gameSession!.isWhiteTurn && player === 1) || (!gameSession!.isWhiteTurn && player !== 1),
+        history: gameSession?.history ? [...gameSession.history] : null,
+      };
+      io.to(user.socketId).emit(Events.INVITED, payload);
+
+      callback({ success: true });
+      return;
+    }
+
+    callback({ success: false });
+  });
+
   socket.on(Events.GAME_START, (enemyPlayer: string, map: string) => {
     console.log("Server Events.GAME_START");
 
@@ -420,12 +623,24 @@ export const gameController = (io: Server, socket: Socket): void => {
       const idSession = playersGame.get(user.username);
       const gameSession = gamesSession.get(idSession!);
 
+      let player;
+      if (gameSession!.whitePlayer === user.username) {
+        player = 1;
+      }
+      if (gameSession!.blackPlayer === user.username) {
+        player = 2;
+      }
+
       const payload = {
         enemyPlayer: curUser.username,
         board: gameSession!.board,
         typeTanks: _typeTanks,
         size: gameSession!.size,
         map: map,
+        player: player,
+        turn:
+          (gameSession!.isWhiteTurn && player === 1) || (!gameSession!.isWhiteTurn && player !== 1),
+        history: gameSession?.history ? [...gameSession.history] : null,
       };
       io.to(user.socketId).emit(Events.GAME_STARTED, payload);
     }
@@ -447,7 +662,22 @@ export const gameController = (io: Server, socket: Socket): void => {
         gameSession!.prevBoard = structuredClone(gameSession!.board);
         gameSession!.selected = null;
         gameSession!.highlighted = new Set();
-        const payload = { board: gameSession!.board, history: [...gameSession!.history] };
+
+        let player;
+        if (gameSession!.whitePlayer === enemyPlayer) {
+          player = 1;
+        }
+        if (gameSession!.blackPlayer === enemyPlayer) {
+          player = 2;
+        }
+
+        const payload = {
+          board: gameSession!.board,
+          history: [...gameSession!.history],
+          turn:
+            (player === 1 && gameSession!.isWhiteTurn) ||
+            (player !== 1 && !gameSession!.isWhiteTurn),
+        };
         io.to(user!.socketId).emit(Events.NEXT_TURNED, payload);
         callback({ success: true, history: [...gameSession!.history] });
       } else {
@@ -493,7 +723,13 @@ export const gameController = (io: Server, socket: Socket): void => {
     (
       enemyPlayer: string,
       shoted: Coord,
-      callback: (res: { success: boolean; board: Board; win: boolean; history: string[] }) => void,
+      callback: (res: {
+        success: boolean;
+        board: Board;
+        win: boolean;
+        history: string[];
+        turn: boolean;
+      }) => void,
     ) => {
       console.log("Server Events.SHOT");
 
@@ -502,7 +738,13 @@ export const gameController = (io: Server, socket: Socket): void => {
 
       if (!checkEndMove(gameSession!)) {
         console.log("no end move");
-        callback({ success: false, board: gameSession!.board, win: false, history: [] });
+        callback({
+          success: false,
+          board: gameSession!.board,
+          win: false,
+          history: [],
+          turn: false,
+        });
         return;
       }
 
@@ -521,7 +763,13 @@ export const gameController = (io: Server, socket: Socket): void => {
           win = true;
         }
 
-        (gameSession!.board[shoted!.row][shoted!.col] as ITank).isAlive = false;
+        (gameSession!.board[shoted!.row][shoted!.col]?.object as ITank).isAlive = false;
+
+        if (gameSession!.board[shoted!.row][shoted!.col]?.effect?.type === "wate") {
+          if (gameSession!.board[shoted!.row][shoted!.col]?.object) {
+            gameSession!.board[shoted!.row][shoted!.col]!.object = null;
+          }
+        }
       }
 
       if (isShoot) {
@@ -535,8 +783,16 @@ export const gameController = (io: Server, socket: Socket): void => {
       gameSession!.selected = null;
       gameSession!.highlighted = new Set();
 
-      const user = userService.getByName(enemyPlayer);
+      const curUser = userService.getBySocket(socket.id);
+      let player;
+      if (gameSession!.whitePlayer === curUser!.username) {
+        player = 1;
+      }
+      if (gameSession!.blackPlayer === curUser!.username) {
+        player = 2;
+      }
 
+      const user = userService.getByName(enemyPlayer);
       const payload = { board: gameSession!.board, win, history: [...gameSession!.history] };
       io.to(user!.socketId).emit(Events.SHOTED, payload);
       callback({
@@ -544,6 +800,8 @@ export const gameController = (io: Server, socket: Socket): void => {
         board: gameSession!.board,
         win,
         history: [...gameSession!.history],
+        turn:
+          (player === 1 && gameSession!.isWhiteTurn) || (player !== 1 && !gameSession!.isWhiteTurn),
       });
     },
   );
@@ -559,6 +817,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         board: Board;
         highlighted: string[];
         selected: Selected;
+        move: number;
       }) => void,
     ) => {
       console.log("Server Events.LEFT_CLICK");
@@ -566,7 +825,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       const idSession = playersGame.get(enemyPlayer);
       const gameSession = gamesSession.get(idSession!);
 
-      const tank = gameSession!.board[select!.row][select!.col] as ITank;
+      const tank = gameSession!.board[select!.row][select!.col]?.object as ITank;
       let board: Board = [];
       const turn =
         (player === 1 && gameSession!.isWhiteTurn) || (player !== 1 && !gameSession!.isWhiteTurn);
@@ -589,7 +848,15 @@ export const gameController = (io: Server, socket: Socket): void => {
         gameSession!.selected = { row: select!.row, col: select!.col, rotate: tank.rotate };
         gameSession!.prevSelected = structuredClone(gameSession!.selected);
         gameSession!.highlighted = setHighlighted(gameSession!);
-        gameSession!.move = (_typeTanks[tank.type] as ITankType).moves;
+
+        if (
+          gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]?.effect?.type ===
+          "mud"
+        ) {
+          gameSession!.move = 1;
+        } else {
+          gameSession!.move = (_typeTanks[tank.type] as ITankType).moves;
+        }
       }
 
       const user = userService.getByName(enemyPlayer);
@@ -602,6 +869,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         board: board,
         highlighted: [...gameSession!.highlighted],
         selected: gameSession!.selected,
+        move: gameSession!.move,
       });
     },
   );
@@ -637,7 +905,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
 
       const { row, col } = gameSession!.selected;
-      const tank = gameSession!.board[row][col] as ITank;
+      const tank = gameSession!.board[row][col]?.object as ITank;
       if (!tank) {
         callback({
           success: false,
@@ -672,7 +940,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       if (checkMoveWin(tank, newRow, gameSession!.size)) {
         console.log("Kinght escaped");
         win = true;
-        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = null;
         gameSession!.selected = null;
         gameSession!.highlighted = new Set<string>();
       } else {
@@ -686,15 +954,34 @@ export const gameController = (io: Server, socket: Socket): void => {
           )
         ) {
           console.log("tank push");
-          const pushed = gameSession!.board[newRow][newCol];
+          const pushed = gameSession!.board[newRow][newCol]!.object;
           const newPushRow = newRow + vectorRow;
           const newPushCel = newCol + vectorCol;
 
-          gameSession!.board[newRow][newCol] = null;
-          gameSession!.board[newPushRow][newPushCel] = pushed;
+          gameSession!.board[newRow][newCol]!.object = null;
+          if (gameSession!.board[newPushRow][newPushCel]?.effect?.type === "mine") {
+            gameSession!.board[newPushRow][newPushCel]!.effect = null;
+          }
+          if (gameSession!.board[newPushRow][newPushCel]?.effect?.type !== "wate") {
+            gameSession!.board[newPushRow][newPushCel]!.object = pushed;
+          }
         }
 
-        if (newRow < 0 || newRow >= gameSession!.size || gameSession!.board[newRow][newCol]) {
+        let isWater = false;
+        const effect = gameSession!.board[newRow][newCol]?.effect;
+        if (effect) {
+          isWater = effect.type === "wate";
+        }
+
+        if (
+          newRow < 0 ||
+          newRow >= gameSession!.size ||
+          (gameSession!.board[newRow][newCol]?.object &&
+            gameSession!.board[newRow][newCol]?.object!.type != "tree") ||
+          (gameSession!.board[newRow][newCol]?.object?.type === "tree" &&
+            !(_typeTanks[tank.type] as ITankType).isCutTree) ||
+          (!(_typeTanks[tank.type] as ITankType).isMoveWater && isWater)
+        ) {
           callback({
             success: false,
             board: [],
@@ -706,11 +993,37 @@ export const gameController = (io: Server, socket: Socket): void => {
           return;
         }
 
-        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = null;
         gameSession!.selected = { row: newRow, col: newCol, rotate: tank.rotate };
-        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = tank;
-        gameSession!.highlighted = setHighlighted(gameSession!);
-        gameSession!.move -= 1;
+        const object =
+          gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object;
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = tank;
+
+        if (
+          gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]?.effect?.type ===
+          "mine"
+        ) {
+          gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.effect = null;
+          if ((_typeTanks[tank.type] as ITankType).isClearMine) {
+            tank.isAlive = true;
+            gameSession!.highlighted = setHighlighted(gameSession!);
+            gameSession!.move -= 1;
+          } else {
+            tank.isAlive = false;
+            gameSession!.highlighted = new Set();
+            gameSession!.move = 0;
+          }
+        } else if (
+          gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]?.effect?.type ===
+            "mud" ||
+          object?.type === "tree"
+        ) {
+          gameSession!.highlighted = setHighlighted(gameSession!);
+          gameSession!.move = 0;
+        } else {
+          gameSession!.highlighted = setHighlighted(gameSession!);
+          gameSession!.move -= 1;
+        }
       }
 
       const user = userService.getByName(enemyPlayer);
@@ -760,7 +1073,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
 
       const { row, col } = gameSession!.selected;
-      const tank = gameSession!.board[row][col] as ITank;
+      const tank = gameSession!.board[row][col]!.object as ITank;
       if (!tank) {
         callback({
           success: false,
@@ -773,7 +1086,12 @@ export const gameController = (io: Server, socket: Socket): void => {
         return;
       }
 
-      if (gameSession!.move !== (_typeTanks[tank.type] as ITankType).moves) {
+      if (
+        !(
+          gameSession!.move === (_typeTanks[tank.type] as ITankType).moves ||
+          gameSession!.board[row][col]?.effect?.type === "mud"
+        )
+      ) {
         callback({
           success: false,
           board: [],
@@ -806,11 +1124,25 @@ export const gameController = (io: Server, socket: Socket): void => {
       if (checkMoveWin(tank, newRow, gameSession!.size)) {
         console.log("Kinght escaped");
         win = true;
-        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = null;
         gameSession!.selected = null;
         gameSession!.highlighted = new Set<string>();
       } else {
-        if (newRow < 0 || newRow >= gameSession!.size || gameSession!.board[newRow][newCol]) {
+        let isWater = false;
+        const effect = gameSession!.board[newRow][newCol]?.effect;
+        if (effect) {
+          isWater = effect.type === "wate";
+        }
+
+        if (
+          newRow < 0 ||
+          newRow >= gameSession!.size ||
+          (gameSession!.board[newRow][newCol]?.object &&
+            gameSession!.board[newRow][newCol]?.object!.type != "tree") ||
+          (gameSession!.board[newRow][newCol]?.object?.type === "tree" &&
+            !(_typeTanks[tank.type] as ITankType).isCutTree) ||
+          (!(_typeTanks[tank.type] as ITankType).isMoveWater && isWater)
+        ) {
           callback({
             success: false,
             board: [],
@@ -822,11 +1154,27 @@ export const gameController = (io: Server, socket: Socket): void => {
           return;
         }
 
-        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = null;
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = null;
         gameSession!.selected = { row: newRow, col: newCol, rotate: tank.rotate };
-        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col] = tank;
-        gameSession!.highlighted = setHighlighted(gameSession!);
+        gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = tank;
         gameSession!.move = 0;
+        if (
+          gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]?.effect?.type ===
+          "mine"
+        ) {
+          gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.effect = null;
+          if ((_typeTanks[tank.type] as ITankType).isClearMine) {
+            tank.isAlive = true;
+            gameSession!.highlighted = setHighlighted(gameSession!);
+            gameSession!.move -= 1;
+          } else {
+            tank.isAlive = false;
+            gameSession!.highlighted = new Set();
+            gameSession!.move = 0;
+          }
+        } else {
+          gameSession!.highlighted = setHighlighted(gameSession!);
+        }
       }
 
       const user = userService.getByName(enemyPlayer);
@@ -875,7 +1223,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
 
       const { row, col } = gameSession!.selected;
-      const tank = gameSession!.board[row][col] as ITank;
+      const tank = gameSession!.board[row][col]!.object as ITank;
       if (!tank) {
         callback({
           success: false,
@@ -890,7 +1238,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       tank.rotate = (((tank.rotate + angle * ANGLE) % 360) + 360) % 360;
 
       gameSession!.selected.rotate = tank.rotate;
-      gameSession!.board[row][col] = tank;
+      gameSession!.board[row][col]!.object = tank;
       gameSession!.highlighted = setHighlighted(gameSession!);
       gameSession!.move -= 1;
 
@@ -921,10 +1269,10 @@ export const gameController = (io: Server, socket: Socket): void => {
       console.log("shot not highligted");
       return false;
     }
-    const tank = board[selected!.row][selected!.col] as ITank;
-    const shotedTank = board[shoted!.row][shoted!.col] as ITank;
+    const tank = board[selected!.row][selected!.col]!.object as ITank;
+    const shotedTank = board[shoted!.row][shoted!.col]!.object as ITank;
 
-    if (tank && shotedTank && tank.type !== "wall" && shotedTank.type !== "wall") {
+    if (tank && shotedTank && tank?.rotate >= 0 && shotedTank?.rotate >= 0) {
       if (tank.player === shotedTank.player) {
         console.log("friend shot");
         return false;
@@ -988,7 +1336,7 @@ export const gameController = (io: Server, socket: Socket): void => {
   }
 
   function checkWin(board: Board, shoted: Coord) {
-    const shotedTank = board[shoted!.row][shoted!.col] as ITank;
+    const shotedTank = board[shoted!.row][shoted!.col]!.object as ITank;
     if (
       shotedTank.type === "wLTK" ||
       shotedTank.type === "bLTK" ||
@@ -1032,14 +1380,30 @@ export const gameController = (io: Server, socket: Socket): void => {
       const rs = startRow + dr;
       const cs = startCol + dc;
       if (rs < 0 || rs >= size || cs < 0 || cs >= size) return;
-      if (board?.[rs]?.[cs]) return;
+      let isShotThrough = true;
+      let cell = board?.[rs]?.[cs];
+      if (cell) {
+        if (cell?.effect) isShotThrough = (_typeTanks[cell.effect.type] as IWallType).isShotThrough;
+        if (isShotThrough && cell?.object)
+          isShotThrough = (_typeTanks[cell.object.type] as IWallType).isShotThrough;
+      }
+      if (!isShotThrough) return;
 
       for (let d = startDist; d <= endDist; d++) {
         const r = startRow + dr * d;
         const c = startCol + dc * d;
         if (r < 0 || r >= size || c < 0 || c >= size) break;
         set.add(`${r},${c}`);
-        if (board?.[r]?.[c]) break;
+
+        isShotThrough = true;
+        cell = board?.[r]?.[c];
+        if (cell) {
+          if (cell?.effect)
+            isShotThrough = (_typeTanks[cell.effect.type] as IWallType).isShotThrough;
+          if (isShotThrough && cell?.object)
+            isShotThrough = (_typeTanks[cell.object.type] as IWallType).isShotThrough;
+        }
+        if (!isShotThrough) return;
       }
     } else if (typeShot === "arta") {
       const rs = startRow + dr;
@@ -1060,7 +1424,7 @@ export const gameController = (io: Server, socket: Socket): void => {
     if (!gameSession.selected) return set;
 
     const { row, col } = gameSession.selected;
-    const tank = gameSession.board?.[row]?.[col] as ITank;
+    const tank = gameSession.board?.[row]?.[col]?.object as ITank;
     if (!tank) return set;
 
     const typeTank = _typeTanks[tank.type] as ITankType;
@@ -1110,16 +1474,14 @@ export const gameController = (io: Server, socket: Socket): void => {
 
   function checkPush(tank: ITank, board: Board, newCoord: Coord, vector: Coord, size: number) {
     if (tank.type !== "wHB" && tank.type !== "bHB") return false;
-    console.log("row ", newCoord!.row);
-    console.log("col ", newCoord!.col);
-    console.log(board[newCoord!.row][newCoord!.col]);
+
     if (
       newCoord!.row < 0 ||
       newCoord!.row >= size ||
-      (board[newCoord!.row][newCoord!.col] &&
-        !_typeTanks[board[newCoord!.row][newCoord!.col]!.type].isPush) ||
-      (board[newCoord!.row][newCoord!.col] &&
-        (board[newCoord!.row][newCoord!.col] as ITank).isAlive)
+      (board[newCoord!.row][newCoord!.col]!.object &&
+        !_typeTanks[board[newCoord!.row][newCoord!.col]!.object!.type].isPush) ||
+      (board[newCoord!.row][newCoord!.col]!.object &&
+        (board[newCoord!.row][newCoord!.col]!.object as ITank).isAlive)
     )
       return false;
 
@@ -1128,7 +1490,7 @@ export const gameController = (io: Server, socket: Socket): void => {
 
     if (newCoord!.col < 0 || newCoord!.col >= size || newCoord!.row < 0 || newCoord!.row >= size)
       return false;
-    if (board[newCoord!.row][newCoord!.col]) return false;
+    if (board[newCoord!.row][newCoord!.col]!.object) return false;
 
     return true;
   }
