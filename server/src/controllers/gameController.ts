@@ -60,6 +60,16 @@ const objects: Record<string, Cell> = {
   wHB: { object: { type: "wHB", player: 1, rotate: 0, isAlive: true }, effect: null },
   wST: { object: { type: "wST", player: 1, rotate: 0, isAlive: true }, effect: null },
   wLH: { object: { type: "wLH", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wTT: { object: { type: "wTT", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wTH: { object: { type: "wTH", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wAG: { object: { type: "wAG", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wLM: { object: { type: "wLM", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wHH: { object: { type: "wHH", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wRL: { object: { type: "wRL", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wAM: { object: { type: "wAM", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wMS: { object: { type: "wMS", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wB: { object: { type: "wB", player: 1, rotate: 0, isAlive: true }, effect: null },
+  wR: { object: { type: "wR", player: 1, rotate: 0, isAlive: true }, effect: null },
   bLTK: { object: { type: "bLTK", player: 2, rotate: 180, isAlive: true }, effect: null },
   bMTK: { object: { type: "bMTK", player: 2, rotate: 180, isAlive: true }, effect: null },
   bHTK: { object: { type: "bHTK", player: 2, rotate: 180, isAlive: true }, effect: null },
@@ -73,6 +83,16 @@ const objects: Record<string, Cell> = {
   bHB: { object: { type: "bHB", player: 2, rotate: 180, isAlive: true }, effect: null },
   bST: { object: { type: "bST", player: 2, rotate: 180, isAlive: true }, effect: null },
   bLH: { object: { type: "bLH", player: 2, rotate: 180, isAlive: true }, effect: null },
+  bTT: { object: { type: "bTT", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bTH: { object: { type: "bTH", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bAG: { object: { type: "bAG", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bLM: { object: { type: "bLM", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bHH: { object: { type: "bHH", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bRL: { object: { type: "bRL", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bAM: { object: { type: "bAM", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bMS: { object: { type: "bMS", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bB: { object: { type: "bB", player: 1, rotate: 0, isAlive: true }, effect: null },
+  bR: { object: { type: "bR", player: 1, rotate: 0, isAlive: true }, effect: null },
 };
 
 let _typeTanks: TypeTanksMap;
@@ -131,6 +151,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wMTK: {
       img: "/sprites/wMTK.png",
@@ -143,6 +164,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wHTK: {
       img: "/sprites/wHTK.png",
@@ -155,6 +177,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wRTK: {
       img: "/sprites/wRTK.png",
@@ -167,6 +190,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wLT: {
       img: "/sprites/wLT.png",
@@ -179,6 +203,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wMT: {
       img: "/sprites/wMT.png",
@@ -191,6 +216,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wHT: {
       img: "/sprites/wHT.png",
@@ -203,6 +229,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wTD: {
       img: "/sprites/wTD.png",
@@ -215,6 +242,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wHM: {
       img: "/sprites/wHM.png",
@@ -227,6 +255,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wRT: {
       img: "/sprites/wRT.png",
@@ -239,6 +268,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wHB: {
       img: "/sprites/wHB.png",
@@ -251,6 +281,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wST: {
       img: "/sprites/wST.png",
@@ -263,6 +294,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     wLH: {
       img: "/sprites/wLH.png",
@@ -275,6 +307,137 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
+    },
+    wTT: {
+      img: "/sprites/wTT.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 21,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: true,
+    },
+    wTH: {
+      img: "/sprites/wTH.png",
+      armor: { front: 0, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 5,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    wAG: {
+      img: "/sprites/wAG.png",
+      armor: { front: 3, side: 0, back: 0 },
+      shot: { sides: 1, min: 2, max: SIZE, type: "tank" },
+      damage: 3,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    wLM: {
+      img: "/sprites/wLM.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 1, min: 2, max: 3, type: "arta" },
+      damage: 2,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    wHH: {
+      img: "/sprites/wHH.png",
+      armor: { front: 1, side: 1, back: 0 },
+      shot: { sides: 1, min: 5, max: 9, type: "arta" },
+      damage: 4,
+      moves: 3,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    wRL: {
+      img: "/sprites/wRL.png",
+      armor: { front: 0, side: 0, back: 0 },
+      shot: { sides: 1, min: 3, max: 6, type: "arta" },
+      damage: 5,
+      moves: 3,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: true,
+    },
+    wAM: {
+      img: "/sprites/wAM.png",
+      armor: { front: 0, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 1,
+      moves: 5,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: true,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    wMS: {
+      img: "/sprites/wMS.png",
+      armor: { front: 2, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: true,
+      isDoubleShot: false,
+    },
+    wB: {
+      img: "/sprites/wB.png",
+      armor: { front: 1, side: 1, back: 1 },
+      shot: { sides: 0, min: 0, max: 0, type: "tank" },
+      damage: 0,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: true,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    wR: {
+      img: "/sprites/wR.png",
+      armor: { front: 1, side: 1, back: 0 },
+      shot: { sides: 1, min: 1, max: 1, type: "repair" },
+      damage: 0,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
     },
     //Black
     bLTK: {
@@ -288,6 +451,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bMTK: {
       img: "/sprites/bMTK.png",
@@ -300,6 +464,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bHTK: {
       img: "/sprites/bHTK.png",
@@ -312,6 +477,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bRTK: {
       img: "/sprites/bRTK.png",
@@ -324,6 +490,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bLT: {
       img: "/sprites/bLT.png",
@@ -336,6 +503,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bMT: {
       img: "/sprites/bMT.png",
@@ -348,6 +516,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bHT: {
       img: "/sprites/bHT.png",
@@ -360,6 +529,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bTD: {
       img: "/sprites/bTD.png",
@@ -372,6 +542,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bHM: {
       img: "/sprites/bHM.png",
@@ -384,6 +555,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bRT: {
       img: "/sprites/bRT.png",
@@ -396,6 +568,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bHB: {
       img: "/sprites/bHB.png",
@@ -408,6 +581,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bST: {
       img: "/sprites/bST.png",
@@ -420,6 +594,7 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: true,
       isClearMine: false,
+      isDoubleShot: false,
     },
     bLH: {
       img: "/sprites/bLH.png",
@@ -432,6 +607,137 @@ function initTypeTanksMap(SIZE: number) {
       isMoveWater: false,
       isCutTree: false,
       isClearMine: false,
+      isDoubleShot: false,
+    },
+    bTT: {
+      img: "/sprites/bTT.png",
+      armor: { front: 2, side: 1, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 21,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: true,
+    },
+    bTH: {
+      img: "/sprites/bTH.png",
+      armor: { front: 0, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 5,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    bAG: {
+      img: "/sprites/bAG.png",
+      armor: { front: 3, side: 0, back: 0 },
+      shot: { sides: 1, min: 2, max: SIZE, type: "tank" },
+      damage: 3,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    bLM: {
+      img: "/sprites/bLM.png",
+      armor: { front: 1, side: 0, back: 0 },
+      shot: { sides: 1, min: 2, max: 3, type: "arta" },
+      damage: 2,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    bHH: {
+      img: "/sprites/bHH.png",
+      armor: { front: 1, side: 1, back: 0 },
+      shot: { sides: 1, min: 5, max: 9, type: "arta" },
+      damage: 4,
+      moves: 3,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    bRL: {
+      img: "/sprites/bRL.png",
+      armor: { front: 0, side: 0, back: 0 },
+      shot: { sides: 1, min: 3, max: 6, type: "arta" },
+      damage: 5,
+      moves: 3,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: true,
+    },
+    bAM: {
+      img: "/sprites/bAM.png",
+      armor: { front: 0, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 1,
+      moves: 5,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: true,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    bMS: {
+      img: "/sprites/bMS.png",
+      armor: { front: 2, side: 0, back: 0 },
+      shot: { sides: 3, min: 2, max: SIZE, type: "tank" },
+      damage: 2,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: true,
+      isDoubleShot: false,
+    },
+    bB: {
+      img: "/sprites/bB.png",
+      armor: { front: 1, side: 1, back: 1 },
+      shot: { sides: 0, min: 0, max: 0, type: "tank" },
+      damage: 0,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: true,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
+    },
+    bR: {
+      img: "/sprites/bR.png",
+      armor: { front: 1, side: 1, back: 0 },
+      shot: { sides: 1, min: 1, max: 1, type: "repair" },
+      damage: 0,
+      moves: 4,
+      isPush: true,
+      isShotThrough: false,
+      isMoveWater: false,
+      isCutTree: false,
+      isClearMine: false,
+      isDoubleShot: false,
     },
   };
   return typeTanks;
@@ -509,6 +815,7 @@ export const gameController = (io: Server, socket: Socket): void => {
           map: "",
           whitePlayer: curUser.username,
           blackPlayer: user.username,
+          wasShot: false,
         };
         initBoard(map, gameSession);
 
@@ -662,6 +969,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         gameSession!.prevBoard = structuredClone(gameSession!.board);
         gameSession!.selected = null;
         gameSession!.highlighted = new Set();
+        gameSession!.wasShot = false;
 
         let player;
         if (gameSession!.whitePlayer === enemyPlayer) {
@@ -729,6 +1037,8 @@ export const gameController = (io: Server, socket: Socket): void => {
         win: boolean;
         history: string[];
         turn: boolean;
+        highlighted: string[];
+        move: number;
       }) => void,
     ) => {
       console.log("Server Events.SHOT");
@@ -744,6 +1054,8 @@ export const gameController = (io: Server, socket: Socket): void => {
           win: false,
           history: [],
           turn: false,
+          highlighted: [],
+          move: -1,
         });
         return;
       }
@@ -778,10 +1090,24 @@ export const gameController = (io: Server, socket: Socket): void => {
         addHistory(gameSession!);
       }
 
-      gameSession!.isWhiteTurn = !gameSession!.isWhiteTurn;
-      gameSession!.prevBoard = structuredClone(gameSession!.board);
-      gameSession!.selected = null;
-      gameSession!.highlighted = new Set();
+      if (
+        (
+          _typeTanks[
+            gameSession!.board[gameSession!.selected!.row][gameSession!.selected!.col]!.object!.type
+          ] as ITankType
+        ).isDoubleShot &&
+        !gameSession!.wasShot
+      ) {
+        gameSession!.highlighted = setHighlighted(gameSession!);
+        gameSession!.wasShot = true;
+      } else {
+        gameSession!.isWhiteTurn = !gameSession!.isWhiteTurn;
+        gameSession!.prevBoard = structuredClone(gameSession!.board);
+        gameSession!.selected = null;
+        gameSession!.highlighted = new Set();
+        gameSession!.wasShot = false;
+      }
+      gameSession!.move = 0;
 
       const curUser = userService.getBySocket(socket.id);
       let player;
@@ -793,13 +1119,23 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
 
       const user = userService.getByName(enemyPlayer);
-      const payload = { board: gameSession!.board, win, history: [...gameSession!.history] };
+      const payload = {
+        board: gameSession!.board,
+        win,
+        history: [...gameSession!.history],
+        turn: !(
+          (player === 1 && gameSession!.isWhiteTurn) ||
+          (player !== 1 && !gameSession!.isWhiteTurn)
+        ),
+      };
       io.to(user!.socketId).emit(Events.SHOTED, payload);
       callback({
         success: true,
         board: gameSession!.board,
+        highlighted: [...gameSession!.highlighted],
         win,
         history: [...gameSession!.history],
+        move: gameSession!.move,
         turn:
           (player === 1 && gameSession!.isWhiteTurn) || (player !== 1 && !gameSession!.isWhiteTurn),
       });
@@ -818,6 +1154,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         highlighted: string[];
         selected: Selected;
         move: number;
+        history: string[];
       }) => void,
     ) => {
       console.log("Server Events.LEFT_CLICK");
@@ -838,6 +1175,12 @@ export const gameController = (io: Server, socket: Socket): void => {
         gameSession!.selected = null;
         gameSession!.prevSelected = null;
         gameSession!.highlighted = new Set<string>();
+        if (gameSession!.wasShot) {
+          let arr = Array.from(gameSession!.history);
+          arr.pop();
+          gameSession!.history = new Set(arr);
+        }
+        gameSession!.wasShot = false;
       } else {
         console.log("click tank");
         if (gameSession!.selected) {
@@ -861,7 +1204,7 @@ export const gameController = (io: Server, socket: Socket): void => {
 
       const user = userService.getByName(enemyPlayer);
 
-      const payload = { board: gameSession!.board };
+      const payload = { board: gameSession!.board, history: [...gameSession!.history] };
       io.to(user!.socketId).emit(Events.ENEMY_MOVED, payload);
 
       callback({
@@ -870,6 +1213,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         highlighted: [...gameSession!.highlighted],
         selected: gameSession!.selected,
         move: gameSession!.move,
+        history: [...gameSession!.history],
       });
     },
   );
@@ -943,6 +1287,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = null;
         gameSession!.selected = null;
         gameSession!.highlighted = new Set<string>();
+        gameSession!.wasShot = false;
       } else {
         if (
           checkPush(
@@ -1127,6 +1472,7 @@ export const gameController = (io: Server, socket: Socket): void => {
         gameSession!.board[gameSession!.selected.row][gameSession!.selected.col]!.object = null;
         gameSession!.selected = null;
         gameSession!.highlighted = new Set<string>();
+        gameSession!.wasShot = false;
       } else {
         let isWater = false;
         const effect = gameSession!.board[newRow][newCol]?.effect;
@@ -1299,6 +1645,7 @@ export const gameController = (io: Server, socket: Socket): void => {
       }
       const angle = DIRS[`${row},${col}` as keyof typeof DIRS];
       const side = Math.abs(shotedTank!.rotate - angle);
+      //прямой выстрел
 
       const damage = (typeTanks[tank.type] as ITankType).damage;
       if (side === 180) {

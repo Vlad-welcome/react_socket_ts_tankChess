@@ -13,7 +13,7 @@ export interface ITankShot {
   sides: number;
   min: number;
   max: number;
-  type: "tank" | "arta";
+  type: "tank" | "arta" | "repair";
 }
 
 export interface ITankType {
@@ -27,6 +27,7 @@ export interface ITankType {
   isMoveWater: boolean;
   isCutTree: boolean;
   isClearMine: boolean;
+  isDoubleShot: boolean;
 }
 export interface IWallType {
   img: string;
@@ -77,5 +78,6 @@ export interface IGameSession {
   map: string;
   whitePlayer: string;
   blackPlayer: string;
+  wasShot: boolean;
 }
 export type GameSession = IGameSession;

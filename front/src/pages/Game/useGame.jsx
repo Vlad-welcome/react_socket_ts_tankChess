@@ -84,10 +84,10 @@ export function useGame(username) {
     const onShoted = async (response) => {
       console.log("shoted");
 
-      setTurn(!response.win);
+      setTurn(response.turn);
       setBoard(response.board);
       setHistory(response.history);
-      document.title = !response.win ? "Ходите" : "Ожидайте";
+      document.title = response.turn ? "Ходите" : "Ожидайте";
 
       if (response.win) {
         console.log("defeated");
@@ -99,6 +99,7 @@ export function useGame(username) {
       console.log("ENEMY_MOVED");
       if (response.board?.length > 0) {
         setBoard(response.board);
+        setHistory(response.history);
       }
     };
 
@@ -236,16 +237,21 @@ export function useGame(username) {
 
     socket.emit(Events.SHOT, enemyPlayer, shoted, async (response) => {
       if (response.success) {
+        if (turn !== response.turn) {
+          setSelected(null);
+          setMove("-");
+          setArmor("-");
+          setDamage("-");
+        } else {
+          setMove(response.move);
+        }
+
         setTurn(response.turn);
         document.title = response.turn ? "Ходите" : "Ожидайте";
 
         setBoard(response.board);
         setHistory(response.history);
-        setSelected(null);
-        setHighlighted(null);
-        setMove("-");
-        setArmor("-");
-        setDamage("-");
+        setHighlighted(new Set(response.highlighted));
 
         if (response.win) {
           console.log("Win");
@@ -412,6 +418,7 @@ export function useGame(username) {
               setDamage(typeTanks[t.type].damage);
             }
             setHighlighted(new Set(response.highlighted));
+            setHistory(response.history);
           }
         });
       }
